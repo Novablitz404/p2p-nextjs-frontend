@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@walletconnect/ethereum-provider'],
   images: {
     remotePatterns: [
       {
