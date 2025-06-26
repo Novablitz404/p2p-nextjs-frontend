@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@walletconnect/ethereum-provider'],
+  // Broader list to catch all related dependencies
+  transpilePackages: [
+    '@walletconnect/ethereum-provider',
+    '@web3modal/standalone',
+    'viem',
+    '@wagmi/core',
+    '@tanstack/query-core',
+    '@tanstack/react-query',
+  ],
   images: {
     remotePatterns: [
       {
@@ -15,8 +23,6 @@ const nextConfig = {
         port: '',
         pathname: '**',
       },
-      // --- THIS IS THE CHANGE ---
-      // Add the hostname for the flag CDN
       {
         protocol: 'https',
         hostname: 'flagcdn.com',
