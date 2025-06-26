@@ -9,15 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@coinbase/wallet-sdk": "^4.3.4",
-    "@tanstack/react-query": "^5.81.2",
+    "@coinbase/wallet-sdk": "4.3.4",
+    "@tanstack/react-query": "5.81.2",
     "@types/uuid": "^10.0.0",
     "firebase": "^11.9.0",
     "firebase-admin": "^13.4.0",
     "geist": "^1.4.2",
     "lucide-react": "^0.513.0",
     "next": "^14.2.5",
-    "permissionless": "^0.2.47",
+    "permissionless": "0.2.47",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.0.0",
