@@ -22,16 +22,8 @@ const nextConfig = {
       },
     ],
   },
-  webpack(config, { isServer }) {
-    // Handling for web workers
-    config.module.rules.push({
-      test: /\.worker\.js$/,
-      use: { loader: 'worker-loader' },
-    });
-
-    // Important: return the modified config
-    return config;
-  },
+  // Add this configuration to solve the build error
+  transpilePackages: ['@coinbase/wallet-sdk'],
 };
 
 export default nextConfig;
