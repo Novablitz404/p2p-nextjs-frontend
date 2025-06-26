@@ -22,6 +22,16 @@ const nextConfig = {
       },
     ],
   },
+  webpack(config, { isServer }) {
+    // Handling for web workers
+    config.module.rules.push({
+      test: /\.worker\.js$/,
+      use: { loader: 'worker-loader' },
+    });
+
+    // Important: return the modified config
+    return config;
+  },
 };
 
 export default nextConfig;
