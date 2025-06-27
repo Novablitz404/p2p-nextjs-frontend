@@ -22,8 +22,6 @@ const nextConfig = {
       },
     ],
   },
-  // Add this configuration to solve the build error
-  transpilePackages: ['@coinbase/wallet-sdk'],
 };
 
 export default nextConfig;
