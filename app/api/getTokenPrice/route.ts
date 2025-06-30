@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const coinIdMap: { [symbol: string]: string } = {
     'ETH': 'ethereum',
     'USDT': 'tether',
+    'USDC': 'usd-coin',
 };
 
 export async function GET(req: NextRequest) {
