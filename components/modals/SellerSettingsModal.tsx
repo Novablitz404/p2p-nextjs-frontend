@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import Modal from '../ui/Modal';
-import Spinner from '../ui/Spinner';
+import { useState, useEffect, useRef } from 'react';
+import Tooltip from '../ui/Tooltip';
+import { Info } from 'lucide-react';
 
 interface SellerSettingsModalProps {
     isOpen: boolean;
@@ -10,7 +10,10 @@ interface SellerSettingsModalProps {
     onSave: (settings: { markup: number; cancellationRate: string }) => void;
     initialMarkup: number;
     initialCancellationRate: string;
+    toggleButtonRef: React.RefObject<HTMLButtonElement>;
 }
+
+const DEFAULT_MARKUP = 1.5;
 
 const SellerSettingsModal = ({
     isOpen,
@@ -18,82 +21,116 @@ const SellerSettingsModal = ({
     onSave,
     initialMarkup,
     initialCancellationRate,
+    toggleButtonRef, 
 }: SellerSettingsModalProps) => {
     const [markup, setMarkup] = useState(initialMarkup);
-    const [cancellationRate, setCancellationRate] = useState(initialCancellationRate);
+    const [cancellationRate, setCancellationRate] = useState(initialCancellationRate || '100');
+    const popoverRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+
+            if (toggleButtonRef.current && toggleButtonRef.current.contains(event.target as Node)) {
+                return;
+            }
+            
+            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+        
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen, onClose, toggleButtonRef]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setMarkup(initialMarkup);
+            setCancellationRate(initialCancellationRate || '100');
+        }
+    }, [isOpen, initialMarkup, initialCancellationRate]);
 
     const handleSave = () => {
         onSave({ markup, cancellationRate });
         onClose();
     };
 
-    const handleMarkupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let newMarkup = parseFloat(e.target.value);
-        if (isNaN(newMarkup)) newMarkup = 0;
-        if (newMarkup > 3) newMarkup = 3;
-        if (newMarkup < 0) newMarkup = 0;
-        setMarkup(newMarkup);
-    };
+    if (!isOpen) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Seller Settings">
-            <div className="space-y-6">
-                {/* Markup Setting */}
-                <div className="space-y-3">
-                    <label htmlFor="markup" className="block text-sm font-medium text-white">
-                        Your Markup (Max 3%)
-                    </label>
-                    <div className="flex items-center gap-4">
-                        <input
-                            type="range"
-                            min="0"
-                            max="3"
-                            step="0.1"
-                            value={markup}
-                            onChange={handleMarkupChange}
-                            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                        />
+        <div
+            ref={popoverRef}
+            className="absolute top-full right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-2xl shadow-xl z-10 p-4 animate-fade-in-up"
+        >
+            <div className="flex justify-between items-center mb-4">
+                 <h3 className="text-base font-semibold text-white">Seller Settings</h3>
+            </div>
+           
+            <div className="space-y-4">
+ 
+                <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-1.5 text-gray-300">
+                        <span>Max markup</span>
+                        <Tooltip text="The percentage above the market rate you want to sell at.">
+                            <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                        </Tooltip>
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-700/50 rounded-full p-1">
+                        <button
+                            type="button"
+                            onClick={() => setMarkup(DEFAULT_MARKUP)}
+                            className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${markup === DEFAULT_MARKUP ? 'bg-slate-600 text-white' : 'text-gray-300 hover:text-white'}`}
+                        >
+                            Auto
+                        </button>
                         <div className="relative">
                             <input
                                 type="number"
                                 value={markup}
-                                onChange={handleMarkupChange}
-                                className="hide-number-arrows w-24 bg-slate-800 text-white rounded-md p-1 pl-2 pr-6 text-right font-mono text-sm border border-slate-600"
+                                onChange={(e) => setMarkup(Number(e.target.value))}
+                                className="hide-number-arrows w-20 bg-transparent text-white text-right font-mono focus:outline-none pr-7"
+                                step="0.1"
+                                min="0"
                             />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">%</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">%</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Cancellation Rate Setting */}
-                <div>
-                    <label htmlFor="min-cancellation-rate" className="block text-sm font-medium text-gray-300">
-                        Max. Buyer Cancellation Rate (%)
-                    </label>
-                    <input
-                        id="min-cancellation-rate"
-                        type="number"
-                        value={cancellationRate}
-                        onChange={(e) => setCancellationRate(e.target.value)}
-                        placeholder="e.g., 10"
-                        className="w-full mt-2 bg-slate-900 rounded-md p-2 border border-slate-700"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                        Optional: Only match with buyers below this rate.
-                    </p>
+           
+                <div className="flex justify-between items-center text-sm">
+                     <div className="flex items-center gap-1.5 text-gray-300">
+                        <span>Cancellation Rate</span>
+                         <Tooltip text="Automatically decline trades from buyers with a cancellation rate higher than this percentage.">
+                            <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                        </Tooltip>
+                    </div>
+                     <div className="relative bg-slate-700/50 rounded-full p-1">
+                         <input
+                            type="number"
+                            value={cancellationRate}
+                            onChange={(e) => setCancellationRate(Math.min(Number(e.target.value), 100).toString())}
+                            placeholder="100"
+                            className="hide-number-arrows w-24 bg-transparent text-white text-center font-mono focus:outline-none px-2 pr-7"
+                            min="0"
+                            max="100"
+                        />
+                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">%</span>
+                    </div>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-3 pt-4">
-                    <button onClick={onClose} className="py-2 px-4 text-sm font-semibold rounded-lg bg-slate-700 hover:bg-slate-600">
-                        Cancel
-                    </button>
-                    <button onClick={handleSave} className="py-2 px-4 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600">
-                        Save Settings
+                
+                <div className="flex justify-end pt-2">
+                     <button onClick={handleSave} className="w-full py-2 px-4 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600">
+                        Save
                     </button>
                 </div>
             </div>
-        </Modal>
+        </div>
     );
 };
 

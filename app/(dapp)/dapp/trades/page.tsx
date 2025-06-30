@@ -190,7 +190,31 @@ const TradesPage = () => {
             const hash = await writeContractAsync({ ...P2P_CONTRACT_CONFIG, functionName: 'releaseFundsForTrade', args: [BigInt(trade.onChainId)] });
             await waitForTransactionReceipt(config, { hash });
             
-            await updateDoc(doc(db, "trades", trade.id), { status: 'RELEASED', releaseTxHash: hash });
+            // Start a batch write to Firestore
+            const batch = writeBatch(db);
+
+            // 1. Update the trade status
+            const tradeRef = doc(db, "trades", trade.id);
+            batch.update(tradeRef, { status: 'RELEASED', releaseTxHash: hash });
+
+            // 2. Check the parent order's status from the blockchain
+            const onChainOrder = await readContract(config, {
+                ...P2P_CONTRACT_CONFIG,
+                functionName: 'orders',
+                args: [BigInt(trade.orderId)]
+            });
+            
+            const remainingAmount = onChainOrder[4]; // remainingAmount is at index 4
+
+            // 3. If the remaining amount is zero, close the order in Firestore
+            if (remainingAmount === 0n) {
+                const orderRef = doc(db, "orders", trade.orderId);
+                batch.update(orderRef, { status: 'CLOSED', remainingAmount: 0 });
+            }
+
+            // 4. Commit all changes at once
+            await batch.commit();
+
             setNotification({ isOpen: true, title: "Success!", message: "Funds released to the buyer." });
         } catch (error: any) {
             setNotification({ isOpen: true, title: "Release Failed", message: error.shortMessage || "The transaction failed." });

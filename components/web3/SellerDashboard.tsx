@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { useNotification } from '@/lib/NotificationProvider';
 import { db } from '@/lib/firebase';
@@ -53,6 +53,7 @@ const SellerDashboard = ({
     const [markupPercentage, setMarkupPercentage] = useState(1.5);
     const [minCancellationRate, setMinCancellationRate] = useState('');
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (!userId) return;
@@ -168,12 +169,28 @@ const SellerDashboard = ({
     
     return (
         <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-            <div className="flex justify-between items-center mb-6">
+            <div className="relative flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Create Sell Order</h2>
-                <button onClick={() => setIsSettingsModalOpen(true)} className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" aria-label="Seller Settings">
+                {/* Add the ref to your button */}
+                <button 
+                    ref={settingsButtonRef}
+                    onClick={() => setIsSettingsModalOpen(prev => !prev)} 
+                    className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
+                    aria-label="Seller Settings"
+                >
                     <Settings size={20} />
                 </button>
+                {/* Pass the ref to the settings modal component */}
+                <SellerSettingsModal
+                    isOpen={isSettingsModalOpen}
+                    onClose={() => setIsSettingsModalOpen(false)}
+                    onSave={handleSaveSettings}
+                    initialMarkup={markupPercentage}
+                    initialCancellationRate={minCancellationRate}
+                    toggleButtonRef={settingsButtonRef}
+                />
             </div>
+
             <SellerOrderForm
                 onSubmit={handleCreateSellOrder}
                 tokenList={tokenList}
@@ -187,13 +204,6 @@ const SellerDashboard = ({
                 isOpen={isRiskModalOpen}
                 onClose={() => setIsRiskModalOpen(false)}
                 onConfirm={executeCreateSellOrder}
-            />
-            <SellerSettingsModal
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
-                onSave={handleSaveSettings}
-                initialMarkup={markupPercentage}
-                initialCancellationRate={minCancellationRate}
             />
         </div>
     );

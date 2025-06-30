@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useWeb3 } from '@/lib/Web3Provider';
@@ -72,6 +72,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
     const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
     const [maxMarkup, setMaxMarkup] = useState('');
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const settingsButtonRef = useRef<HTMLButtonElement>(null);
     
     // FIX: Re-add the missing state declarations for the modals
     const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
@@ -284,12 +285,27 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
 
     return (
         <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-            <div className="flex justify-between items-center mb-6">
+            <div className="relative flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Find Best Match</h2>
-                <button onClick={() => setIsSettingsModalOpen(true)} className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" aria-label="Buyer Settings">
+                {/* Add the ref to the button and update the onClick to toggle */}
+                <button 
+                    ref={settingsButtonRef}
+                    onClick={() => setIsSettingsModalOpen(prev => !prev)} 
+                    className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
+                    aria-label="Buyer Settings"
+                >
                     <Settings size={20} />
                 </button>
+                {/* Pass the ref to the settings modal component */}
+                <BuyerSettingsModal
+                    isOpen={isSettingsModalOpen}
+                    onClose={() => setIsSettingsModalOpen(false)}
+                    onSave={handleSaveSettings}
+                    initialMarkup={maxMarkup}
+                    toggleButtonRef={settingsButtonRef}
+                />
             </div>
+
             <div className="space-y-6">
                 <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">I want to buy</label>
@@ -329,7 +345,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
             <PaymentMethodSelectorModal isOpen={isPaymentMethodModalOpen} onClose={() => setIsPaymentMethodModalOpen(false)} paymentMethods={approvedChannels} onSelectMethod={handlePaymentMethodSelect} />
             <CurrencySelectorModal isOpen={isCurrencyModalOpen} onClose={() => setIsCurrencyModalOpen(false)} currencies={supportedCurrencies} onSelectCurrency={handleCurrencySelect} />
             <BuyerRiskWarningModal isOpen={isRiskModalOpen} onClose={() => setIsRiskModalOpen(false)} onConfirm={executeMatchFinding} />
-            <BuyerSettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onSave={handleSaveSettings} initialMarkup={maxMarkup} />
+
         </div>
     );
 };

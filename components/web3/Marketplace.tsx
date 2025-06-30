@@ -125,8 +125,8 @@ const Marketplace = () => {
                     ) : (
                         <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg">
                             <div className="flex border-b border-slate-700">
-                                <TabButton id="buy" activeTab={activeTab} setActiveTab={setActiveTab} color="emerald">Buy Crypto</TabButton>
-                                <TabButton id="sell" activeTab={activeTab} setActiveTab={setActiveTab} color="red">Sell Crypto</TabButton>
+                                <TabButton id="buy" activeTab={activeTab} setActiveTab={setActiveTab} color="emerald">Buy</TabButton>
+                                <TabButton id="sell" activeTab={activeTab} setActiveTab={setActiveTab} color="red">Sell</TabButton>
                             </div>
                             <div className="p-6 sm:p-8">
                                 {activeTab === 'buy' ? 

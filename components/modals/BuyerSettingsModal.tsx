@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import Modal from '../ui/Modal';
+import { useState, useEffect, useRef } from 'react';
+import Tooltip from '../ui/Tooltip';
+import { Info } from 'lucide-react';
 
 interface BuyerSettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (markup: string) => void;
     initialMarkup: string;
+    // Accept the button's ref as a prop
+    toggleButtonRef: React.RefObject<HTMLButtonElement>;
 }
 
 const BuyerSettingsModal = ({
@@ -15,48 +18,83 @@ const BuyerSettingsModal = ({
     onClose,
     onSave,
     initialMarkup,
+    toggleButtonRef,
 }: BuyerSettingsModalProps) => {
     const [markup, setMarkup] = useState(initialMarkup);
+    const popoverRef = useRef<HTMLDivElement>(null);
+
+    // Click outside to close logic
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (toggleButtonRef.current && toggleButtonRef.current.contains(event.target as Node)) {
+                return;
+            }
+            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen, onClose, toggleButtonRef]);
+
+    // Sync state when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setMarkup(initialMarkup);
+        }
+    }, [isOpen, initialMarkup]);
 
     const handleSave = () => {
         onSave(markup);
         onClose();
     };
 
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Buyer Matching Settings">
-            <div className="space-y-6">
-                <div>
-                    <label htmlFor="max-markup" className="block text-sm font-medium text-gray-300">
-                        Max. Seller Markup (%)
-                    </label>
-                    <div className="relative mt-2">
-                        <input
-                            id="max-markup"
-                            type="number"
-                            value={markup}
-                            onChange={(e) => setMarkup(e.target.value)}
-                            placeholder="e.g., 2 for 2%"
-                            className="w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 pr-8"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Optional: Only find sellers with a markup at or below this rate.
-                    </p>
-                </div>
+    if (!isOpen) return null;
 
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-3 pt-4">
-                    <button onClick={onClose} className="py-2 px-4 text-sm font-semibold rounded-lg bg-slate-700 hover:bg-slate-600">
-                        Cancel
-                    </button>
-                    <button onClick={handleSave} className="py-2 px-4 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600">
-                        Save Settings
+    return (
+        <div
+            ref={popoverRef}
+            className="absolute top-full right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-2xl shadow-xl z-10 p-4 animate-fade-in-up"
+        >
+            <div className="flex justify-between items-center mb-4">
+                 <h3 className="text-base font-semibold text-white">Buyer Settings</h3>
+            </div>
+           
+            <div className="space-y-4">
+                {/* Max Markup Setting */}
+                <div className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-1.5 text-gray-300">
+                        <span>Max. Seller Markup</span>
+                        <Tooltip text="Only find sellers with a markup at or below this rate. Leave blank to see all offers.">
+                            <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                        </Tooltip>
+                    </div>
+                    <div className="relative bg-slate-700/50 rounded-full p-1">
+                        <input
+                           type="number"
+                           value={markup}
+                           onChange={(e) => setMarkup(e.target.value)}
+                           placeholder="Any"
+                           className="hide-number-arrows w-24 bg-transparent text-white text-center font-mono focus:outline-none px-2 pr-7"
+                           min="0"
+                       />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">%</span>
+                   </div>
+                </div>
+                
+                {/* Action Button */}
+                <div className="flex justify-end pt-2">
+                     <button onClick={handleSave} className="w-full py-2 px-4 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600">
+                        Save
                     </button>
                 </div>
             </div>
-        </Modal>
+        </div>
     );
 };
 
