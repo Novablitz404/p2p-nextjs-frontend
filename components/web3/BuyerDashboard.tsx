@@ -272,7 +272,12 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
             
             await batch.commit();
     
-            addNotification(userId, { type: 'success', message: `${tradeLogs.length} new trades are available!` });
+            addNotification(userId, { 
+                type: 'success', 
+                message: `${tradeLogs.length} new trades are available!`,
+                link: '/dapp/trades' // Add the link here
+            });
+            
             router.push('/dapp/trades');
     
         } catch (error: any) {

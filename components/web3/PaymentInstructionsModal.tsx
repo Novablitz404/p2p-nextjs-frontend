@@ -142,7 +142,12 @@ const PaymentInstructionsModal = ({ isOpen, onClose, activeTrade, onConfirmFiat,
             <div className="mt-6 flex flex-col space-y-3">
                 {activeTrade.status === 'LOCKED' && (
                     <>
-                        <button onClick={onConfirmFiat} disabled={isConfirmingFiat} className="w-full px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-lg disabled:opacity-50 flex justify-center items-center">
+                        {/* --- THIS IS THE FIX --- */}
+                        <button 
+                            onClick={onConfirmFiat} 
+                            disabled={isConfirmingFiat || !activeTrade.proofOfPaymentURL} 
+                            className="w-full px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                        >
                             {isConfirmingFiat ? <Spinner text="Confirming..." /> : "I Have Paid Seller"}
                         </button>
                         <button onClick={onCancelTrade} className="w-full py-2 rounded-lg text-sm text-gray-400 hover:bg-slate-700" disabled={isConfirmingFiat}>

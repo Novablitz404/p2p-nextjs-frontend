@@ -104,4 +104,5 @@ export interface AppNotification {
     message: string;
     timestamp: Timestamp; // Use the Firestore Timestamp type
     read: boolean;
+    link?: string;
 }

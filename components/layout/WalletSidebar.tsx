@@ -99,8 +99,12 @@ const WalletSidebar = ({ isOpen, onClose }: WalletSidebarProps) => {
             setTimeout(() => setIsCopied(false), 2000);
         }
     };
+
+    const handleDisconnect = () => {
+        disconnectWallet();
+        onClose();
+    };
     
-    // UI state derived from your original component
     const tradeCount = userProfile?.tradeCount || 0;
     const cancellationCount = userProfile?.cancellationCount || 0;
     const averageRating = userProfile?.averageRating || 0;
@@ -166,7 +170,8 @@ const WalletSidebar = ({ isOpen, onClose }: WalletSidebarProps) => {
                     </div>
 
                     <div className="mt-auto pt-6">
-                        <button onClick={disconnectWallet} className="w-full flex items-center justify-center gap-2 px-4 py-2 font-semibold bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors">
+                        {/* The onClick handler for this button is now updated */}
+                        <button onClick={handleDisconnect} className="w-full flex items-center justify-center gap-2 px-4 py-2 font-semibold bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors">
                            <LogOut size={16}/> Disconnect
                         </button>
                     </div>

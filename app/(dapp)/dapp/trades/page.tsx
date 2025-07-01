@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { db, storage } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteField, serverTimestamp, addDoc, Timestamp, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { Trade } from '@/types';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
+import { useNotification } from '@/lib/NotificationProvider';
 
 // Wagmi and Viem Imports
 import { useWriteContract, useReadContracts } from 'wagmi';
@@ -26,6 +28,7 @@ const NotificationModal = dynamic(() => import('@/components/ui/NotificationModa
 const PaymentInstructionsModal = dynamic(() => import('@/components/web3/PaymentInstructionsModal'));
 const ImageViewModal = dynamic(() => import('@/components/ui/ImageViewModal'));
 const LeaveReviewModal = dynamic(() => import('@/components/modals/LeaveReviewModal'));
+const FundsReleasedModal = dynamic(() => import('@/components/modals/FundsReleasedModal'));
 
 const P2P_CONTRACT_CONFIG = {
     address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
@@ -33,10 +36,9 @@ const P2P_CONTRACT_CONFIG = {
 };
 
 const TradesPage = () => {
-    // Use the wagmi-powered Web3Provider
+    const router = useRouter();
+    const { addNotification } = useNotification();
     const { address, isInitializing, isAuthenticating } = useWeb3();
-    
-    // Wagmi hook for all write transactions
     const { writeContractAsync, isPending, reset } = useWriteContract();
     
     // State Management (copied from your file)
@@ -55,6 +57,11 @@ const TradesPage = () => {
     const [tradeToReview, setTradeToReview] = useState<Trade | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const TRADES_PER_PAGE = 6;
+    const [releasedTrade, setReleasedTrade] = useState<Trade | null>(null);
+    const [isReleasedModalOpen, setIsReleasedModalOpen] = useState(false);
+    
+    // This ref helps us track the previous state of the trades
+    const previousBuyTrades = useRef<Trade[]>([]);
 
     // Fetch on-chain timeouts efficiently with wagmi's useReadContracts
     const { data: timeoutData } = useReadContracts({
@@ -135,7 +142,12 @@ const TradesPage = () => {
             });
             await waitForTransactionReceipt(config, { hash });
             await updateDoc(doc(db, "trades", trade.id), { status: 'FIAT_PAID', fiatSentAt: serverTimestamp() });
-            setNotification({ isOpen: true, title: "Payment Confirmed", message: "The seller has been notified." });
+            setNotification({ 
+                isOpen: true, 
+                title: "Payment Confirmed", 
+                message: "The seller has been notified. You can view the trade status here.",
+                action: { text: 'View Trades', onClick: () => router.push('/dapp/trades') } 
+            });
         } catch (error: any) {
             setNotification({ isOpen: true, title: "Action Failed", message: error.shortMessage || "Could not confirm payment." });
         } finally {
@@ -156,7 +168,11 @@ const TradesPage = () => {
             });
             await waitForTransactionReceipt(config, { hash });
             await updateDoc(doc(db, "trades", trade.id), { status: 'CANCELED', cancellationTxHash: hash });
-            setNotification({ isOpen: true, title: "Trade Canceled", message: "Your trade has been successfully canceled." });
+            setNotification({ 
+                isOpen: true, 
+                title: "Trade Canceled", 
+                message: "Your trade has been successfully canceled." 
+            });
             setIsPaymentModalOpen(false);
         } catch (error: any) {
             console.error("Cancellation Error:", error);
@@ -215,7 +231,11 @@ const TradesPage = () => {
             // 4. Commit all changes at once
             await batch.commit();
 
-            setNotification({ isOpen: true, title: "Success!", message: "Funds released to the buyer." });
+            addNotification(trade.buyer, { 
+                type: 'success', 
+                message: `Seller has released ${trade.amount} ${trade.tokenSymbol}.`,
+                link: '/dapp/trades' // Add the link here
+            });
         } catch (error: any) {
             setNotification({ isOpen: true, title: "Release Failed", message: error.shortMessage || "The transaction failed." });
         } finally {
@@ -223,6 +243,28 @@ const TradesPage = () => {
             reset();
         }
     };
+    
+    // --- THIS IS A CHANGE ---
+    // This useEffect hook detects when a buyer's trade is completed.
+    useEffect(() => {
+        if (!address) return;
+
+        // Find trades that just changed from 'FIAT_PAID' to 'RELEASED'
+        const justReleasedTrade = buyTrades.find(currentTrade => 
+            currentTrade.status === 'RELEASED' &&
+            previousBuyTrades.current.some(prevTrade => 
+                prevTrade.id === currentTrade.id && prevTrade.status === 'FIAT_PAID'
+            )
+        );
+
+        if (justReleasedTrade) {
+            setReleasedTrade(justReleasedTrade);
+            setIsReleasedModalOpen(true);
+        }
+
+        // Update the ref to the current trades for the next render
+        previousBuyTrades.current = buyTrades;
+    }, [buyTrades, address]);
     
     // --- UNCHANGED DATA FETCHING & UI LOGIC ---
     useEffect(() => {
@@ -376,6 +418,12 @@ const TradesPage = () => {
                     </>
                 )}
             </div>
+
+            <FundsReleasedModal
+                isOpen={isReleasedModalOpen}
+                onClose={() => setIsReleasedModalOpen(false)}
+                trade={releasedTrade}
+            />
             
             <PaymentInstructionsModal 
                 isOpen={isPaymentModalOpen}

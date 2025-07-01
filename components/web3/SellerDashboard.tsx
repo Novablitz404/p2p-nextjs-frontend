@@ -1,5 +1,6 @@
 'use client';
 
+// Make sure to import 'useRef' from React
 import { useState, useEffect, useRef } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { useNotification } from '@/lib/NotificationProvider';
@@ -13,7 +14,7 @@ import { Settings } from 'lucide-react';
 import { useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt, readContract } from 'wagmi/actions';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
-import { erc20Abi, keccak256, toBytes } from 'viem'; // Import viem hashing utilities
+import { erc20Abi, keccak256, toBytes } from 'viem'; 
 import { config } from '@/lib/config';
 import { parseUnits, zeroAddress, decodeEventLog, TransactionReceipt } from 'viem';
 
@@ -46,13 +47,15 @@ const SellerDashboard = ({
     const { addNotification } = useNotification();
     const { writeContractAsync, isPending, reset } = useWriteContract();
     
-    // All component state remains the same as your original file
     const [myPaymentMethods, setMyPaymentMethods] = useState<any[]>([]);
     const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
     const [pendingOrderArgs, setPendingOrderArgs] = useState<any>(null);
     const [markupPercentage, setMarkupPercentage] = useState(1.5);
     const [minCancellationRate, setMinCancellationRate] = useState('');
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+    // --- THIS IS THE FIX (Part 1) ---
+    // Create a ref for the settings button.
     const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
@@ -69,7 +72,6 @@ const SellerDashboard = ({
         tokenAddress: string, tokenSymbol: string, amount: string,
         selectedPaymentMethodIds: string[], fiatCurrency: string
     ) => {
-        // This function is correct and remains the same
         const selectedToken = tokenList.find(t => t.address === tokenAddress);
         if (!selectedToken) { addNotification(userId, { type: 'error', message: 'Invalid token selected.' }); return; }
         const selectedMethods = myPaymentMethods.filter(m => selectedPaymentMethodIds.includes(m.id));
@@ -78,7 +80,6 @@ const SellerDashboard = ({
         setIsRiskModalOpen(true);
     };
 
-    // --- The Final Refactored Web3 Handler ---
     const executeCreateSellOrder = async () => {
         if (!pendingOrderArgs || !address) return;
         const { tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate } = pendingOrderArgs;
@@ -113,26 +114,22 @@ const SellerDashboard = ({
 
             const receipt = await waitForTransactionReceipt(config, { hash: transactionHash });
 
-            // FIX: Replicate the original, working logic using viem
             const orderCreatedTopic = keccak256(toBytes("OrderCreated(uint256,address,address,uint256)"));
             const orderCreatedLog = receipt.logs.find(log => log.topics[0] === orderCreatedTopic);
 
             if (!orderCreatedLog) {
-                // This error will now only trigger if the event is truly missing, not due to a decoding issue.
                 throw new Error("OrderCreated event not found in transaction logs. Please verify the contract ABI.");
             }
             
-            // Now that we have the correct log, decode it.
             const decodedLog = decodeEventLog({ abi: P2PEscrowABI, ...orderCreatedLog });
             const orderId = (decodedLog.args as any).orderId.toString();
 
-            // The rest of the logic to save to Firestore is correct and remains the same
             const paymentDetailsMap: { [key: string]: any } = {};
             selectedMethods.forEach((method: any) => {
                 paymentDetailsMap[method.channel] = { channel: method.channel, accountName: method.accountName, accountNumber: method.accountNumber };
             });
 
-            const newOrder: Omit<Order, 'id'> = {
+            const newOrder: Omit<Order, 'id'> & { minBuyerCancellationRate?: number } = {
                 onChainId: orderId,
                 seller: userId,
                 markupPercentage: parseFloat(markupPercentage.toString()),
@@ -143,14 +140,21 @@ const SellerDashboard = ({
                 tokenAddress, tokenSymbol,
                 tokenDecimals: selectedToken.decimals,
                 status: 'OPEN',
-                minBuyerCancellationRate: minCancellationRate ? parseFloat(minCancellationRate) / 100 : undefined,
                 createdAt: serverTimestamp() as Timestamp,
                 paymentMethods: selectedMethods.map((m: any) => m.channel),
                 paymentDetails: paymentDetailsMap
             };
 
+            if (minCancellationRate && minCancellationRate !== '') {
+                newOrder.minBuyerCancellationRate = parseFloat(minCancellationRate) / 100;
+            }
+
             await setDoc(doc(db, "orders", orderId), newOrder);
-            addNotification(address, { type: 'success', message: `Your order (#${orderId}) is now active!` });
+            addNotification(address, { 
+                type: 'success', 
+                message: `Your order (#${orderId}) is now active! Click to view.`,
+                link: '/dapp/orders' // Add the link here
+            });
 
         } catch (error: any) {
             console.error("Order creation error:", error);
@@ -166,13 +170,12 @@ const SellerDashboard = ({
         setMarkupPercentage(settings.markup);
         setMinCancellationRate(settings.cancellationRate);
     };
-    
+
     return (
         <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
             <div className="relative flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Create Sell Order</h2>
-                {/* Add the ref to your button */}
-                <button 
+                 <button 
                     ref={settingsButtonRef}
                     onClick={() => setIsSettingsModalOpen(prev => !prev)} 
                     className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
@@ -180,7 +183,8 @@ const SellerDashboard = ({
                 >
                     <Settings size={20} />
                 </button>
-                {/* Pass the ref to the settings modal component */}
+                {/* --- THIS IS THE FIX (Part 2) --- */}
+                {/* Pass the ref to the modal component. */}
                 <SellerSettingsModal
                     isOpen={isSettingsModalOpen}
                     onClose={() => setIsSettingsModalOpen(false)}
@@ -190,7 +194,6 @@ const SellerDashboard = ({
                     toggleButtonRef={settingsButtonRef}
                 />
             </div>
-
             <SellerOrderForm
                 onSubmit={handleCreateSellOrder}
                 tokenList={tokenList}
