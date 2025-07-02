@@ -1,7 +1,7 @@
 'use client';
 
-// Make sure to import 'useRef' from React
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation'; // Import the useRouter hook
 import { useWeb3 } from '@/lib/Web3Provider';
 import { useNotification } from '@/lib/NotificationProvider';
 import { db } from '@/lib/firebase';
@@ -22,6 +22,10 @@ import { parseUnits, zeroAddress, decodeEventLog, TransactionReceipt } from 'vie
 import SellerOrderForm from './SellerOrderForm';
 const SellerRiskWarningModal = dynamic(() => import('../modals/SellerRiskWarningModal'));
 const SellerSettingsModal = dynamic(() => import('../modals/SellerSettingsModal'));
+// --- THIS IS A CHANGE ---
+// Import the NotificationModal component
+const NotificationModal = dynamic(() => import('../ui/NotificationModal'));
+
 
 const P2P_CONTRACT_CONFIG = {
     address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
@@ -46,17 +50,20 @@ const SellerDashboard = ({
     const { address } = useWeb3();
     const { addNotification } = useNotification();
     const { writeContractAsync, isPending, reset } = useWriteContract();
-    
+    const router = useRouter(); // Initialize the router
+
     const [myPaymentMethods, setMyPaymentMethods] = useState<any[]>([]);
     const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
     const [pendingOrderArgs, setPendingOrderArgs] = useState<any>(null);
     const [markupPercentage, setMarkupPercentage] = useState(1.5);
     const [minCancellationRate, setMinCancellationRate] = useState('');
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-
-    // --- THIS IS THE FIX (Part 1) ---
-    // Create a ref for the settings button.
     const settingsButtonRef = useRef<HTMLButtonElement>(null);
+
+    // --- THIS IS A CHANGE ---
+    // Add state to manage the local notification modal
+    const [notification, setNotification] = useState<{ isOpen: boolean; title: string; message: string; action?: { text: string; onClick: () => void; }; }>({ isOpen: false, title: '', message: '' });
+
 
     useEffect(() => {
         if (!userId) return;
@@ -150,16 +157,28 @@ const SellerDashboard = ({
             }
 
             await setDoc(doc(db, "orders", orderId), newOrder);
-            addNotification(address, { 
-                type: 'success', 
-                message: `Your order (#${orderId}) is now active! Click to view.`,
-                link: '/dapp/orders' // Add the link here
+
+            // --- THIS IS THE FIX ---
+            // Use the local setNotification state instead of the global addNotification
+            setNotification({
+                isOpen: true,
+                title: "Order Created!",
+                message: `Your sell order (#${orderId}) is now active on the marketplace.`,
+                action: {
+                    text: "View My Orders",
+                    onClick: () => router.push('/dapp/orders')
+                }
             });
 
         } catch (error: any) {
             console.error("Order creation error:", error);
             const reason = error.message || error.shortMessage || "An unknown error occurred.";
-            addNotification(address!, { type: 'error', message: `Could not create order: ${reason}` });
+            // Use the local modal for errors as well for consistency
+            setNotification({
+                isOpen: true,
+                title: "Order Creation Failed",
+                message: `Could not create order: ${reason}`
+            });
         } finally {
             reset();
             setPendingOrderArgs(null);
@@ -170,7 +189,7 @@ const SellerDashboard = ({
         setMarkupPercentage(settings.markup);
         setMinCancellationRate(settings.cancellationRate);
     };
-
+    
     return (
         <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
             <div className="relative flex justify-between items-center mb-6">
@@ -183,8 +202,6 @@ const SellerDashboard = ({
                 >
                     <Settings size={20} />
                 </button>
-                {/* --- THIS IS THE FIX (Part 2) --- */}
-                {/* Pass the ref to the modal component. */}
                 <SellerSettingsModal
                     isOpen={isSettingsModalOpen}
                     onClose={() => setIsSettingsModalOpen(false)}
@@ -207,6 +224,11 @@ const SellerDashboard = ({
                 isOpen={isRiskModalOpen}
                 onClose={() => setIsRiskModalOpen(false)}
                 onConfirm={executeCreateSellOrder}
+            />
+
+            <NotificationModal
+                onClose={() => setNotification({ isOpen: false, title: '', message: ''})} 
+                {...notification} 
             />
         </div>
     );

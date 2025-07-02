@@ -16,9 +16,7 @@ interface PaymentMethod {
     channel: string;
 }
 
-// --- THIS IS THE UPDATED PROPS INTERFACE ---
 interface SellerOrderFormProps {
-    // onSubmit is now simpler, as settings are managed by the parent
     onSubmit: (
         tokenAddress: string,
         tokenSymbol: string,
@@ -26,7 +24,7 @@ interface SellerOrderFormProps {
         selectedPaymentMethodIds: string[],
         fiatCurrency: string
     ) => Promise<void>;
-    markupPercentage: number; // Receives markup from parent for price calculation
+    markupPercentage: number;
     tokenList: Token[];
     supportedCurrencies: string[];
     isLoadingTokens: boolean;
@@ -50,12 +48,12 @@ const formatFiatValue = (value: string): string => {
 
 const SellerOrderForm = ({ 
     onSubmit, 
-    markupPercentage, // Use the prop from the parent
+    markupPercentage,
     tokenList, 
     supportedCurrencies, 
     isLoadingTokens, 
     myPaymentMethods, 
-    isProcessing 
+    isProcessing // Use the prop from the parent
 }: SellerOrderFormProps) => {
     const [cryptoAmount, setCryptoAmount] = useState('');
     const [fiatAmount, setFiatAmount] = useState('');
@@ -67,7 +65,6 @@ const SellerOrderForm = ({
     const [isPriceLoading, setIsPriceLoading] = useState(false);
     
     const [selectedPaymentMethodIds, setSelectedPaymentMethodIds] = useState<string[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -76,7 +73,6 @@ const SellerOrderForm = ({
     const selectedToken = tokenList.find(t => t.address === selectedTokenAddress);
     const countryCode = currencyCountryMap[fiatCurrency] || 'xx';
 
-    // This calculation now uses the markupPercentage prop passed from the parent dashboard
     const finalPriceRate = useMemo(() => {
         if (marketPrice === null) return null;
         return marketPrice * (1 + markupPercentage / 100);
@@ -134,8 +130,6 @@ const SellerOrderForm = ({
             alert("Please fill out all fields.");
             return;
         }
-        setIsSubmitting(true);
-        // The onSubmit call is now simpler
         await onSubmit(
             selectedToken.address, 
             selectedToken.symbol, 
@@ -143,11 +137,8 @@ const SellerOrderForm = ({
             selectedPaymentMethodIds, 
             fiatCurrency
         );
-        
-        setCryptoAmount('');
-        setFiatAmount('');
-        setSelectedPaymentMethodIds([]);
-        setIsSubmitting(false);
+        // Clearing the form is now handled by the parent if needed,
+        // which prevents the UI from resetting prematurely.
     };
     
     const selectedMethods = myPaymentMethods.filter(m => selectedPaymentMethodIds.includes(m.id));
@@ -217,12 +208,13 @@ const SellerOrderForm = ({
                     </div>
                 </div>
 
+                {/* --- THIS IS THE FIX --- */}
                 <button 
-                        type="submit" 
-                        disabled={isSubmitting || isLoadingTokens || isPriceLoading || myPaymentMethods.length === 0} 
-                        className="w-full font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-red-400 text-white text-lg disabled:opacity-50"
-                    >
-                        {isSubmitting ? <Spinner text="Submitting..."/> : 'Create Sell Order'}
+                    type="submit" 
+                    disabled={isProcessing || isLoadingTokens || isPriceLoading || myPaymentMethods.length === 0} 
+                    className="w-full font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-red-400 text-white text-lg disabled:opacity-50"
+                >
+                    {isProcessing ? <Spinner text="Confirming..."/> : 'Create Sell Order'}
                 </button>
             </form>
 

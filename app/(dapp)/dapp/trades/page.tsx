@@ -141,12 +141,11 @@ const TradesPage = () => {
                 args: [BigInt(trade.onChainId)],
             });
             await waitForTransactionReceipt(config, { hash });
-            await updateDoc(doc(db, "trades", trade.id), { status: 'FIAT_PAID', fiatSentAt: serverTimestamp() });
+            await updateDoc(doc(db, "trades", trade.id), { status: 'FIAT_PAID', fiatSentAt: serverTimestamp() });          
             setNotification({ 
                 isOpen: true, 
                 title: "Payment Confirmed", 
-                message: "The seller has been notified. You can view the trade status here.",
-                action: { text: 'View Trades', onClick: () => router.push('/dapp/trades') } 
+                message: "The seller has been notified."
             });
         } catch (error: any) {
             setNotification({ isOpen: true, title: "Action Failed", message: error.shortMessage || "Could not confirm payment." });
@@ -202,7 +201,7 @@ const TradesPage = () => {
     const handleReleaseFunds = async (trade: Trade) => {
         setProcessingTradeId(trade.id);
         try {
-            setNotification({ isOpen: true, title: "Action Required", message: "Confirm in your wallet to release funds." });
+
             const hash = await writeContractAsync({ ...P2P_CONTRACT_CONFIG, functionName: 'releaseFundsForTrade', args: [BigInt(trade.onChainId)] });
             await waitForTransactionReceipt(config, { hash });
             
@@ -230,12 +229,7 @@ const TradesPage = () => {
 
             // 4. Commit all changes at once
             await batch.commit();
-
-            addNotification(trade.buyer, { 
-                type: 'success', 
-                message: `Seller has released ${trade.amount} ${trade.tokenSymbol}.`,
-                link: '/dapp/trades' // Add the link here
-            });
+            
         } catch (error: any) {
             setNotification({ isOpen: true, title: "Release Failed", message: error.shortMessage || "The transaction failed." });
         } finally {
