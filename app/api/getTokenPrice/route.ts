@@ -4,6 +4,7 @@ const coinIdMap: { [symbol: string]: string } = {
     'ETH': 'ethereum',
     'USDT': 'tether',
     'USDC': 'usd-coin',
+    'IDRX': 'idrx',
 };
 
 export async function GET(req: NextRequest) {

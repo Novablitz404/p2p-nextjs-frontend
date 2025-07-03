@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Modal from '../ui/Modal';
 import Tooltip from '../ui/Tooltip';
 import { Info } from 'lucide-react';
 
@@ -21,28 +22,27 @@ const SellerSettingsModal = ({
     onSave,
     initialMarkup,
     initialCancellationRate,
-    toggleButtonRef, 
+    toggleButtonRef,
 }: SellerSettingsModalProps) => {
     const [markup, setMarkup] = useState(initialMarkup);
     const [cancellationRate, setCancellationRate] = useState(initialCancellationRate || '100');
+    // --- THIS IS A CHANGE (Part 1) ---
+    // Add state to handle the visual feedback for the error
+    const [showMarkupError, setShowMarkupError] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-
             if (toggleButtonRef.current && toggleButtonRef.current.contains(event.target as Node)) {
                 return;
             }
-            
             if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
                 onClose();
             }
         };
-        
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
-
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
@@ -60,6 +60,26 @@ const SellerSettingsModal = ({
         onClose();
     };
 
+    // --- THIS IS A CHANGE (Part 2) ---
+    // Updated handler to manage the error state
+    const handleMarkupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let newMarkup = parseFloat(e.target.value);
+
+        if (isNaN(newMarkup)) {
+            setMarkup(0);
+            return;
+        }
+
+        if (newMarkup > 3) {
+            // Set the value to 3, but trigger the error flash
+            setMarkup(3);
+            setShowMarkupError(true);
+            setTimeout(() => setShowMarkupError(false), 500); // Hide the error flash after 0.5s
+        } else {
+            setMarkup(newMarkup < 0 ? 0 : newMarkup);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -72,15 +92,16 @@ const SellerSettingsModal = ({
             </div>
            
             <div className="space-y-4">
- 
+                {/* Max Markup Setting */}
                 <div className="flex justify-between items-center text-sm">
                     <div className="flex items-center gap-1.5 text-gray-300">
                         <span>Max markup</span>
-                        <Tooltip text="The percentage above the market rate you want to sell at.">
+                        {/* --- THIS IS A CHANGE (Part 3) --- */}
+                        <Tooltip text="The percentage above market rate (max 3%).">
                             <Info className="h-4 w-4 text-gray-500 cursor-help" />
                         </Tooltip>
                     </div>
-                    <div className="flex items-center gap-2 bg-slate-700/50 rounded-full p-1">
+                    <div className={`flex items-center gap-2 bg-slate-700/50 rounded-full p-1 transition-colors ${showMarkupError ? 'bg-red-500/30' : ''}`}>
                         <button
                             type="button"
                             onClick={() => setMarkup(DEFAULT_MARKUP)}
@@ -92,17 +113,16 @@ const SellerSettingsModal = ({
                             <input
                                 type="number"
                                 value={markup}
-                                onChange={(e) => setMarkup(Number(e.target.value))}
+                                onChange={handleMarkupChange}
                                 className="hide-number-arrows w-20 bg-transparent text-white text-right font-mono focus:outline-none pr-7"
                                 step="0.1"
-                                min="0"
                             />
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">%</span>
                         </div>
                     </div>
                 </div>
 
-           
+                {/* Cancellation Rate Setting */}
                 <div className="flex justify-between items-center text-sm">
                      <div className="flex items-center gap-1.5 text-gray-300">
                         <span>Cancellation Rate</span>
@@ -124,6 +144,7 @@ const SellerSettingsModal = ({
                     </div>
                 </div>
                 
+                {/* Action Button */}
                 <div className="flex justify-end pt-2">
                      <button onClick={handleSave} className="w-full py-2 px-4 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600">
                         Save
