@@ -36,6 +36,7 @@ const currencyCountryMap: { [key: string]: string } = {
     PHP: 'ph',
     USD: 'us',
     EUR: 'eu',
+    THB: 'th',
 };
 
 const formatFiatValue = (value: string): string => {
