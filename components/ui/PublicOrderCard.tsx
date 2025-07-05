@@ -58,58 +58,84 @@ const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
     const currencySymbol = currencySymbols[order.fiatCurrency] || order.fiatCurrency;
 
     return (
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex flex-col justify-between space-y-3 transition-all hover:border-emerald-500/50 hover:bg-slate-800">
-            <div className="mb-2">
-                <div className="flex justify-between items-start">
-                   <div>
-                       <span className="font-bold text-lg text-white">
-                           Selling {order.remainingAmount.toLocaleString(undefined, {maximumFractionDigits: 2})} {order.tokenSymbol}
-                       </span>
-                       <div className="text-sm text-gray-400 h-5 flex items-center mt-1">
-                           {isPriceLoading ? <Spinner /> : (
-                               totalLiveFiatValue !== null ? (
-                                    <div className="flex items-center">
-                                        {/* --- THIS IS THE FIX --- */}
-                                        <span className="mr-2">Price:</span>
-                                        <span className="relative flex h-2 w-2 mr-2">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                        </span>
-                                        <span className="font-semibold text-white">
-                                            {currencySymbol}{totalLiveFiatValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                        </span>
-                                    </div>
-                               ) : (
-                                   <span className="text-red-500 text-xs">Price unavailable</span>
-                               )
-                           )}
-                       </div>
-                   </div>
-                   <img 
-                        src={`https://effigy.im/a/${order.tokenAddress}.svg`} 
-                        alt={`${order.tokenSymbol} logo`}
-                        className="h-8 w-8 rounded-full bg-slate-700"
-                    />
-               </div>
-            </div>
-            
-            <div className="!mt-auto pt-3 border-t border-slate-700/50 space-y-3">
-                <div className="flex justify-between items-center text-sm text-slate-400">
-                     <div className="flex items-center gap-1.5">
-                        <TrendingUp size={14} className="text-cyan-400" />
-                        <span>Markup: <span className="font-semibold text-white">{order.markupPercentage.toFixed(2)}%</span></span>
+        <div className="group bg-gradient-to-br from-slate-800/50 to-slate-800/30 p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between space-y-6 transition-all duration-300 hover:border-emerald-500/50 hover:bg-slate-800/80 hover:shadow-xl hover:shadow-emerald-500/10 hover:scale-105 backdrop-blur-sm">
+            {/* Header */}
+            <div className="flex justify-between items-start">
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="relative">
+                            <img 
+                                src={`https://effigy.im/a/${order.tokenAddress}.svg`} 
+                                alt={`${order.tokenSymbol} logo`}
+                                className="h-8 w-8 rounded-full bg-slate-700 ring-2 ring-slate-600"
+                            />
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-800"></div>
+                        </div>
+                        <span className="text-sm text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                            {order.tokenSymbol}
+                        </span>
                     </div>
-                     <div className="flex items-center gap-1.5">
-                        <CreditCard size={14} className="text-purple-400" />
-                        <span className="font-semibold text-white">{order.paymentMethods.join(', ')}</span>
+                    
+                    <h3 className="font-bold text-xl text-white mb-2">
+                        {order.remainingAmount.toLocaleString(undefined, {maximumFractionDigits: 2})} {order.tokenSymbol}
+                    </h3>
+                    
+                    <div className="text-sm text-gray-400 flex items-center">
+                        {isPriceLoading ? (
+                            <div className="flex items-center">
+                                <Spinner />
+                                <span className="ml-2">Loading price...</span>
+                            </div>
+                        ) : (
+                            totalLiveFiatValue !== null ? (
+                                <div className="flex items-center">
+                                    <span className="relative flex h-2 w-2 mr-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    <span className="font-semibold text-white text-lg">
+                                        {currencySymbol}{totalLiveFiatValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                    </span>
+                                    <span className="text-gray-500 ml-2">total value</span>
+                                </div>
+                            ) : (
+                                <span className="text-red-400 text-xs">Price unavailable</span>
+                            )
+                        )}
                     </div>
                 </div>
-                 <Link href="/dapp" className="w-full flex items-center justify-center text-sm px-4 py-2 rounded-lg font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors">
-                       Trade <ArrowRight size={16} className="ml-1.5" />
-                 </Link>
             </div>
+            
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600/30">
+                    <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp size={16} className="text-cyan-400" />
+                        <span className="text-xs text-gray-400 font-medium">Markup</span>
+                    </div>
+                    <span className="font-bold text-white text-lg">{order.markupPercentage.toFixed(2)}%</span>
+                </div>
+                
+                <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600/30">
+                    <div className="flex items-center gap-2 mb-2">
+                        <CreditCard size={16} className="text-purple-400" />
+                        <span className="text-xs text-gray-400 font-medium">Payment</span>
+                    </div>
+                    <span className="font-bold text-white text-sm">{order.paymentMethods.slice(0, 2).join(', ')}{order.paymentMethods.length > 2 ? '...' : ''}</span>
+                </div>
+            </div>
+            
+            {/* Action Button */}
+            <Link 
+                href="/dapp" 
+                className="w-full flex items-center justify-center text-sm px-6 py-4 rounded-xl font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-emerald-500/25 transform hover:scale-105"
+            >
+                <Zap className="w-4 h-4 mr-2" />
+                Start Trading
+                <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+            </Link>
         </div>
-   );
+    );
 };
 
 export default PublicOrderCard;
