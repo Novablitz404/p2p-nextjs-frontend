@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface TokenPrice {
@@ -24,101 +24,15 @@ const PriceCarousel = () => {
     { symbol: 'MATIC', price: 0.85, change24h: 6.78, volume24h: 680000000 },
   ]);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
-  const isScrollingRef = useRef(false);
-
-  // Improved continuous scroll with better performance
-  const startScroll = useCallback(() => {
-    if (!scrollRef.current || isScrollingRef.current) return;
-    
-    isScrollingRef.current = true;
-    const scrollSpeed = 30; // Reduced speed for smoother motion
-    let lastTime = performance.now();
-    
-    const animate = (currentTime: number) => {
-      if (!scrollRef.current) return;
-      
-      const deltaTime = currentTime - lastTime;
-      const scrollAmount = (deltaTime / 1000) * scrollSpeed;
-      
-      scrollRef.current.scrollLeft += scrollAmount;
-      
-      // Reset scroll position for infinite loop
-      const maxScroll = scrollRef.current.scrollWidth / 2;
-      if (scrollRef.current.scrollLeft >= maxScroll) {
-        scrollRef.current.scrollLeft = 0;
-      }
-      
-      lastTime = currentTime;
-      animationRef.current = requestAnimationFrame(animate);
-    };
-    
-    animationRef.current = requestAnimationFrame(animate);
-  }, []);
-
-  const stopScroll = useCallback(() => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = undefined;
-    }
-    isScrollingRef.current = false;
-  }, []);
-
-  // Start/stop animation based on visibility and user interaction
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopScroll();
-      } else {
-        timeoutId = setTimeout(startScroll, 1000);
-      }
-    };
-
-    const handleUserInteraction = () => {
-      stopScroll();
-      timeoutId = setTimeout(startScroll, 3000);
-    };
-
-    // Start animation after component mounts
-    timeoutId = setTimeout(startScroll, 500);
-
-    // Pause on user interaction
-    const container = scrollRef.current;
-    if (container) {
-      container.addEventListener('touchstart', handleUserInteraction, { passive: true });
-      container.addEventListener('mousedown', handleUserInteraction, { passive: true });
-      container.addEventListener('wheel', handleUserInteraction, { passive: true });
-    }
-
-    // Pause when tab is not visible
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearTimeout(timeoutId);
-      stopScroll();
-      
-      if (container) {
-        container.removeEventListener('touchstart', handleUserInteraction);
-        container.removeEventListener('mousedown', handleUserInteraction);
-        container.removeEventListener('wheel', handleUserInteraction);
-      }
-      
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [startScroll, stopScroll]);
-
-  // Simulate live price updates with reduced frequency
+  // Simulate live price updates
   useEffect(() => {
     const interval = setInterval(() => {
       setPrices(prev => prev.map(token => ({
         ...token,
-        price: token.price + (Math.random() - 0.5) * 0.05, // Smaller price changes
+        price: token.price + (Math.random() - 0.5) * 0.05,
         change24h: token.change24h + (Math.random() - 0.5) * 0.05,
       })));
-    }, 8000); // Reduced update frequency
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
@@ -143,22 +57,20 @@ const PriceCarousel = () => {
   return (
     <div className="relative bg-slate-900/50 border-b border-slate-800/50 backdrop-blur-sm z-20 -mt-4">
       <div className="w-full px-2 sm:px-4">
-        <div className="relative">
-          {/* Scrollable container with improved mobile handling */}
-          <div
-            ref={scrollRef}
-            className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide"
+        <div className="relative overflow-hidden">
+          {/* CSS-based infinite scroll animation */}
+          <div 
+            className="flex gap-2 sm:gap-3 animate-scroll"
             style={{
-              msOverflowStyle: 'none',
-              scrollbarWidth: 'none',
-              WebkitOverflowScrolling: 'touch', // Better iOS scrolling
+              animation: 'scroll 30s linear infinite',
+              width: 'max-content',
             }}
           >
             {/* Duplicate items for seamless infinite loop */}
-            {[...prices, ...prices].map((token, index) => (
+            {[...prices, ...prices, ...prices].map((token, index) => (
               <div
                 key={`${token.symbol}-${index}`}
-                className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-800/50 border border-slate-700/30 rounded-md backdrop-blur-sm min-w-fit"
+                className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-800/50 border border-slate-700/30 rounded-md backdrop-blur-sm"
               >
                 <div className="flex items-center gap-1 sm:gap-1.5">
                   <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center">
@@ -185,8 +97,8 @@ const PriceCarousel = () => {
                   </div>
                 </div>
                 
-                {/* Volume - hidden on very small screens */}
-                <div className="hidden md:block border-l border-slate-700/30 pl-2">
+                {/* Volume - hidden on mobile */}
+                <div className="hidden lg:block border-l border-slate-700/30 pl-2">
                   <span className="text-xs text-gray-400">Vol</span>
                   <div className="text-xs font-medium text-white">
                     {formatVolume(token.volume24h)}
@@ -197,6 +109,36 @@ const PriceCarousel = () => {
           </div>
         </div>
       </div>
+
+      {/* CSS Animation */}
+      <style jsx>{`
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-33.33%);
+          }
+        }
+        
+        .animate-scroll {
+          animation: scroll 30s linear infinite;
+        }
+        
+        /* Pause animation on hover for desktop */
+        @media (hover: hover) {
+          .animate-scroll:hover {
+            animation-play-state: paused;
+          }
+        }
+        
+        /* Reduce animation speed on mobile for better performance */
+        @media (max-width: 768px) {
+          .animate-scroll {
+            animation-duration: 45s;
+          }
+        }
+      `}</style>
     </div>
   );
 };
