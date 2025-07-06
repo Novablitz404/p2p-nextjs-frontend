@@ -19,7 +19,7 @@ import { parseUnits, formatUnits, decodeEventLog, keccak256, toBytes } from 'vie
 // Component Imports
 import Spinner from '../ui/Spinner';
 import { ChevronDown, Settings } from 'lucide-react';
-import { useNotification } from '@/lib/NotificationProvider';
+import { useNotifications } from '@/lib/NotificationProvider';
 import { CURRENCY_PAYMENT_METHODS } from '@/constants';
 
 const SellerSuggestionModal = dynamic(() => import('../web3/SellerSuggestionModal'));
@@ -52,7 +52,7 @@ const formatFiatValue = (value: string): string => {
 };
 
 const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencies }: BuyerDashboardProps) => {
-    const { addNotification } = useNotification();
+    const { addNotification } = useNotifications();
     const router = useRouter();
 
     const { writeContractAsync, isPending, reset } = useWriteContract();

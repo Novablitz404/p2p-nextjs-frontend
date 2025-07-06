@@ -9,6 +9,7 @@ import { verifyVapidKeyWithProject, getFirebaseConsoleInstructions } from '@/lib
 import { testFirebaseProjectConfig, getFirebaseConsoleChecklist } from '@/lib/firebaseProjectTest';
 import { checkFirebaseAuthConfig, getFirebaseAuthInstructions } from '@/lib/checkFirebaseAuth';
 import { runComprehensivePushTest, getPushNotificationTroubleshooting } from '@/lib/pushNotificationTest';
+import { testVapidSetup, getVapidInstructions } from '@/lib/testVapidSetup';
 import EnvironmentChecker from './EnvironmentChecker';
 
 interface NotificationDebugPanelProps {
@@ -306,6 +307,73 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
     }
   };
 
+  const runVapidTest = async () => {
+    try {
+      setIsLoading(true);
+      const results = await testVapidSetup();
+      console.log('VAPID test results:', results);
+      
+      let report = `🔑 VAPID SETUP TEST\n\n`;
+      report += `Progress: ${results.step}/${results.totalSteps}\n`;
+      report += `Success: ${results.success ? '✅ Yes' : '❌ No'}\n\n`;
+      
+      // Show step details
+      for (let i = 1; i <= results.step; i++) {
+        const stepDetail = results.details[`step${i}`];
+        if (stepDetail) {
+          report += `Step ${i}: ${stepDetail}\n`;
+        }
+      }
+      
+      if (results.success) {
+        report += `\n✅ VAPID SETUP LOOKS GOOD!\n`;
+        if (results.details.vapidKeyPresent) {
+          report += `VAPID Key: ${results.details.vapidKeyPreview}\n`;
+          report += `Key Length: ${results.details.vapidKeyLength}\n`;
+        }
+        if (results.details.alreadySubscribed) {
+          report += `Already Subscribed: Yes\n`;
+          report += `Endpoint: ${results.details.subscriptionEndpoint}\n`;
+        } else {
+          report += `Already Subscribed: No\n`;
+        }
+        report += `\nYou can now test push notifications!`;
+      } else {
+        report += `\n❌ VAPID SETUP FAILED AT STEP ${results.step}\n`;
+        if (results.errors.length > 0) {
+          const lastError = results.errors[results.errors.length - 1];
+          report += `Error: ${lastError.error}\n`;
+          report += `Details: ${lastError.details}\n`;
+        }
+        
+        report += `\n🔧 NEXT STEPS:\n`;
+        report += `1. Add VAPID keys to environment variables\n`;
+        report += `2. Deploy the updated code\n`;
+        report += `3. Test again\n`;
+      }
+      
+      alert(report);
+    } catch (error) {
+      console.error('VAPID test failed:', error);
+      alert(`❌ VAPID test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const showVapidInstructions = () => {
+    const instructions = getVapidInstructions();
+    let report = `📋 ${instructions.title}\n\n`;
+    
+    instructions.steps.forEach((step: any) => {
+      const critical = step.critical ? ' 🔴' : ' 🔵';
+      report += `${step.step}.${critical} ${step.title}\n`;
+      report += `   ${step.description}\n\n`;
+    });
+    
+    alert(report);
+  };
+
   const runComprehensiveDiagnostics = async () => {
     try {
       setIsLoading(true);
@@ -513,6 +581,18 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors"
               >
                 🚀 Comprehensive Push Test
+              </button>
+              <button
+                onClick={runVapidTest}
+                className="px-4 py-2 bg-lime-500 hover:bg-lime-600 text-white rounded-lg transition-colors"
+              >
+                🔑 Test VAPID Setup
+              </button>
+              <button
+                onClick={showVapidInstructions}
+                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
+              >
+                📋 VAPID Instructions
               </button>
               <button
                 onClick={testVapidKeyConfig}

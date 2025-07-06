@@ -23,12 +23,14 @@ export const checkFirebaseAuthConfig = async () => {
       currentDomain,
       domainMatch: firebaseConfig.authDomain === currentDomain,
       authInitialized: !!auth,
-      issues: []
+      issues: [],
+      recommendations: []
     };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Unknown error',
-      issues: ['Failed to initialize Firebase Auth']
+      issues: ['Failed to initialize Firebase Auth'],
+      recommendations: []
     };
   }
 };
@@ -45,19 +47,19 @@ export const getFirebaseAuthInstructions = () => {
       },
       {
         step: 2,
-        title: 'Add Authorized Domain',
-        description: 'Go to Authentication → Settings → Authorized domains → Add "www.rampz.io"',
+        title: 'Add Authorized Domains',
+        description: 'Go to Authentication → Settings → Authorized domains → Add BOTH "www.rampz.io" AND "p2p-dex-ramp.firebaseapp.com"',
         critical: true
       },
       {
         step: 3,
-        title: 'Alternative: Check Project Settings',
-        description: 'Go to Project Settings → General → Look for "Authorized domains" section',
+        title: 'Alternative: Update Environment Variable',
+        description: 'Change NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN to "www.rampz.io" in your Vercel environment variables',
         critical: false
       },
       {
         step: 4,
-        title: 'Verify Auth Domain',
+        title: 'Verify Domain Match',
         description: 'Make sure your auth domain matches your website domain',
         critical: false
       }

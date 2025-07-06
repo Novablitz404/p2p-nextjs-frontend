@@ -1,62 +1,48 @@
-import { getMessaging, getToken } from 'firebase/messaging';
-import { initializeApp } from 'firebase/app';
-
 export const runComprehensivePushTest = async () => {
   const results: any = {
     step: 1,
-    totalSteps: 6,
+    totalSteps: 5,
     success: false,
     errors: [],
     details: {}
   };
 
   try {
-    // Step 1: Check Firebase initialization
+    // Step 1: Check VAPID public key
     results.step = 1;
-    results.details.step1 = 'Checking Firebase initialization...';
+    results.details.step1 = 'Checking VAPID public key...';
     
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    };
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      throw new Error('VAPID key not found in environment variables');
+    }
 
-    const app = initializeApp(firebaseConfig);
-    results.details.firebaseInitialized = true;
+    if (!vapidKey.startsWith('B')) {
+      throw new Error('VAPID key format incorrect (should start with B)');
+    }
 
-    // Step 2: Check messaging initialization
+    results.details.vapidKeyPresent = true;
+    results.details.vapidKeyLength = vapidKey.length;
+    results.details.vapidKeyPreview = vapidKey.substring(0, 20) + '...';
+
+    // Step 2: Check service worker support
     results.step = 2;
-    results.details.step2 = 'Initializing Firebase Messaging...';
-    
-    const messaging = getMessaging(app);
-    results.details.messagingInitialized = true;
-
-    // Step 3: Check service worker
-    results.step = 3;
-    results.details.step3 = 'Checking service worker...';
+    results.details.step2 = 'Checking service worker support...';
     
     if (!('serviceWorker' in navigator)) {
       throw new Error('Service Worker not supported');
     }
 
-    const registration = await navigator.serviceWorker.getRegistration();
-    if (!registration) {
-      throw new Error('No service worker registration found');
+    if (!('PushManager' in window)) {
+      throw new Error('Push Manager not supported');
     }
 
-    if (!registration.active) {
-      throw new Error('Service worker not active');
-    }
+    results.details.serviceWorkerSupported = true;
+    results.details.pushManagerSupported = true;
 
-    results.details.serviceWorkerActive = true;
-    results.details.serviceWorkerState = registration.active.state;
-
-    // Step 4: Check notification permission
-    results.step = 4;
-    results.details.step4 = 'Checking notification permission...';
+    // Step 3: Check notification permission
+    results.step = 3;
+    results.details.step3 = 'Checking notification permission...';
     
     if (!('Notification' in window)) {
       throw new Error('Notifications not supported');
@@ -79,38 +65,50 @@ export const runComprehensivePushTest = async () => {
       }
     }
 
-    // Step 5: Check VAPID key
+    // Step 4: Register service worker
+    results.step = 4;
+    results.details.step4 = 'Registering service worker...';
+    
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    results.details.serviceWorkerRegistered = true;
+    results.details.serviceWorkerState = registration.active?.state || 'unknown';
+
+    // Wait for service worker to be ready
+    await navigator.serviceWorker.ready;
+
+    // Step 5: Subscribe to push notifications with VAPID
     results.step = 5;
-    results.details.step5 = 'Checking VAPID key...';
+    results.details.step5 = 'Subscribing to push notifications with VAPID...';
     
-    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-    if (!vapidKey) {
-      throw new Error('VAPID key not found in environment variables');
-    }
+    // Convert VAPID public key to Uint8Array
+    const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
 
-    if (!vapidKey.startsWith('B')) {
-      throw new Error('VAPID key format incorrect (should start with B)');
-    }
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
 
-    results.details.vapidKeyPresent = true;
-    results.details.vapidKeyLength = vapidKey.length;
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    };
 
-    // Step 6: Request FCM token
-    results.step = 6;
-    results.details.step6 = 'Requesting FCM token...';
-    
-    const token = await getToken(messaging, {
-      vapidKey: vapidKey
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey)
     });
 
-    if (!token) {
-      throw new Error('Failed to get FCM token');
+    if (!subscription) {
+      throw new Error('Failed to subscribe to push notifications');
     }
 
-    results.details.fcmToken = token.substring(0, 20) + '...';
-    results.details.fcmTokenLength = token.length;
+    results.details.subscriptionEndpoint = subscription.endpoint.substring(0, 50) + '...';
+    results.details.subscriptionKeys = Object.keys(subscription.toJSON());
     results.success = true;
-    results.details.step6 = 'FCM token obtained successfully!';
+    results.details.step5 = 'Successfully subscribed to push notifications with VAPID!';
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -128,7 +126,7 @@ export const runComprehensivePushTest = async () => {
 
 export const getPushNotificationTroubleshooting = (results: any) => {
   const troubleshooting: any = {
-    title: 'Push Notification Troubleshooting Guide',
+    title: 'VAPID Push Notification Troubleshooting Guide',
     steps: []
   };
 
@@ -136,7 +134,7 @@ export const getPushNotificationTroubleshooting = (results: any) => {
     troubleshooting.steps.push({
       step: '✅',
       title: 'Success!',
-      description: 'Push notifications are working correctly.',
+      description: 'VAPID push notifications are working correctly.',
       action: 'none'
     });
     return troubleshooting;
@@ -145,10 +143,10 @@ export const getPushNotificationTroubleshooting = (results: any) => {
   // Add troubleshooting steps based on where it failed
   if (results.step < 2) {
     troubleshooting.steps.push({
-      step: '🔧',
-      title: 'Firebase Configuration Issue',
-      description: 'Check your Firebase config in environment variables.',
-      action: 'Check environment variables'
+      step: '🔑',
+      title: 'VAPID Key Issue',
+      description: 'VAPID key missing or incorrect format.',
+      action: 'Check VAPID key in environment variables'
     });
   }
 
@@ -156,8 +154,8 @@ export const getPushNotificationTroubleshooting = (results: any) => {
     troubleshooting.steps.push({
       step: '⚙️',
       title: 'Service Worker Issue',
-      description: 'Service worker not registered or not active.',
-      action: 'Reload service worker'
+      description: 'Service worker not supported or not available.',
+      action: 'Check browser support'
     });
   }
 
@@ -172,19 +170,10 @@ export const getPushNotificationTroubleshooting = (results: any) => {
 
   if (results.step < 5) {
     troubleshooting.steps.push({
-      step: '🔑',
-      title: 'VAPID Key Issue',
-      description: 'VAPID key missing or incorrect format.',
-      action: 'Check VAPID key in environment variables'
-    });
-  }
-
-  if (results.step < 6) {
-    troubleshooting.steps.push({
       step: '🚀',
-      title: 'FCM Token Issue',
-      description: 'Failed to get FCM token. Check Firebase Console settings.',
-      action: 'Check Firebase Console → Cloud Messaging → Web Push certificates'
+      title: 'VAPID Subscription Issue',
+      description: 'Failed to subscribe to push notifications with VAPID.',
+      action: 'Check VAPID key format and service worker registration'
     });
   }
 
