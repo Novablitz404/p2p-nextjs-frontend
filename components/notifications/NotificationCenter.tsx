@@ -4,6 +4,8 @@ import { useNotification } from '@/lib/NotificationProvider';
 import { AppNotification } from '@/types';
 import { X, Trash2, CheckCircle, Circle, Check, Bell } from 'lucide-react';
 import Link from 'next/link';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
 interface NotificationCenterProps {
     isOpen: boolean;
@@ -68,20 +70,18 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
         </div>
     );
 
-    return (
+    if (typeof window === 'undefined') return null; // SSR safety
+    if (!isOpen) return null;
+
+    return ReactDOM.createPortal(
         <>
             {/* Backdrop */}
             <div 
-                className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] transition-opacity duration-300 ease-in-out ${
-                    isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`} 
+                className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] transition-opacity duration-300 ease-in-out opacity-100`} 
                 onClick={onClose} 
             />
-            
             {/* Notification Panel */}
-            <div className={`fixed top-0 right-0 h-full w-96 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-l border-slate-600/50 shadow-2xl z-[9999] transform transition-transform duration-300 ease-in-out ${
-                isOpen ? 'translate-x-0' : 'translate-x-full'
-            }`}>
+            <div className={`fixed top-0 right-0 h-full w-96 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-l border-slate-600/50 shadow-2xl z-[9999] transform transition-transform duration-300 ease-in-out translate-x-0`}>
                 <div className="p-6 h-full flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-600/30">
@@ -100,7 +100,6 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                             <X size={20}/>
                         </button>
                     </div>
-                    
                     {/* Action Buttons */}
                     {notifications.length > 0 && (
                         <div className="flex gap-2 mb-4 pb-4 border-b border-slate-600/30">
@@ -122,7 +121,6 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                             </button>
                         </div>
                     )}
-
                     {/* Notifications List */}
                     <div className="flex-grow overflow-y-auto space-y-3 -mr-2 pr-2">
                         {notifications.length === 0 ? (
@@ -154,7 +152,8 @@ const NotificationCenter = ({ isOpen, onClose }: NotificationCenterProps) => {
                     </div>
                 </div>
             </div>
-        </>
+        </>,
+        document.body
     );
 };
 
