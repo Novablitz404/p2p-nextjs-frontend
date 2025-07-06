@@ -6,6 +6,7 @@ import { getNotificationPermissionStatus } from '@/lib/notificationUtils';
 import { testVapidKey } from '@/lib/testVapidKey';
 import { runFirebaseDiagnostics, getFirebaseProjectInfo } from '@/lib/firebaseDiagnostics';
 import { verifyVapidKeyWithProject, getFirebaseConsoleInstructions } from '@/lib/verifyVapidKey';
+import { testFirebaseProjectConfig, getFirebaseConsoleChecklist } from '@/lib/firebaseProjectTest';
 import EnvironmentChecker from './EnvironmentChecker';
 
 interface NotificationDebugPanelProps {
@@ -150,6 +151,52 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
     
     instructions.steps.forEach((step: any) => {
       report += `${step.step}. ${step.title}\n`;
+      report += `   ${step.description}\n\n`;
+    });
+    
+    alert(report);
+  };
+
+  const runFirebaseProjectTest = async () => {
+    try {
+      const results = await testFirebaseProjectConfig();
+      console.log('Firebase project test results:', results);
+      
+      let report = `🔧 FIREBASE PROJECT CONFIGURATION TEST\n\n`;
+      report += `Project ID: ${results.projectId}\n`;
+      report += `Messaging Sender ID: ${results.messagingSenderId}\n`;
+      report += `Domain: ${results.domain}\n`;
+      report += `VAPID Key: ${results.vapidKey.present ? 'Present' : 'Missing'}\n`;
+      report += `VAPID Length: ${results.vapidKey.length}\n`;
+      report += `VAPID Format: ${results.vapidKey.startsWithB ? 'Correct' : 'Incorrect'}\n\n`;
+      
+      if (results.allGood) {
+        report += `✅ All configuration looks good!\n\n`;
+        report += `If you're still getting errors, the issue is likely in Firebase Console:\n`;
+        report += `1. Cloud Messaging API not enabled\n`;
+        report += `2. Domain not authorized\n`;
+        report += `3. VAPID key mismatch in Firebase Console\n`;
+      } else {
+        report += `❌ Issues found:\n`;
+        results.issues.forEach((issue: string, index: number) => {
+          report += `${index + 1}. ${issue}\n`;
+        });
+      }
+      
+      alert(report);
+    } catch (error) {
+      console.error('Firebase project test failed:', error);
+      alert(`❌ Firebase project test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const showFirebaseConsoleChecklist = () => {
+    const checklist = getFirebaseConsoleChecklist();
+    let report = `📋 ${checklist.title}\n\n`;
+    
+    checklist.steps.forEach((step: any) => {
+      const critical = step.critical ? ' 🔴' : ' 🔵';
+      report += `${step.step}.${critical} ${step.title}\n`;
       report += `   ${step.description}\n\n`;
     });
     
@@ -309,7 +356,7 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
             <EnvironmentChecker />
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-slate-600">
+            <div className="flex gap-3 pt-4 border-t border-slate-600 flex-wrap">
               <button
                 onClick={gatherDebugInfo}
                 className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
@@ -333,6 +380,18 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
               >
                 Force Service Worker Control
+              </button>
+              <button
+                onClick={runFirebaseProjectTest}
+                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+              >
+                🔍 Test Project Config
+              </button>
+              <button
+                onClick={showFirebaseConsoleChecklist}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              >
+                📋 Firebase Console Checklist
               </button>
               <button
                 onClick={testVapidKeyConfig}
