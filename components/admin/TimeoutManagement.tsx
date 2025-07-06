@@ -37,7 +37,7 @@ const TimeoutManagement = () => {
 
     const handleSetBuyerTimeout = async () => {
         if (!buyerTimeout || parseInt(buyerTimeout) <= 0) {
-            addNotification(address!, { type: 'error', message: 'Please enter a valid timeout in seconds.' });
+            addNotification({ type: 'error', message: 'Please enter a valid timeout in seconds.' });
             return;
         }
         try {
@@ -47,10 +47,10 @@ const TimeoutManagement = () => {
                 args: [BigInt(buyerTimeout)],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification(address!, { type: 'success', message: 'Buyer payment timeout updated!' });
+            addNotification({ type: 'success', message: 'Buyer payment timeout updated!' });
             refetch(); // Refresh both values
         } catch (err: any) {
-            addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }
@@ -58,7 +58,7 @@ const TimeoutManagement = () => {
 
     const handleSetSellerTimeout = async () => {
         if (!sellerTimeout || parseInt(sellerTimeout) <= 0) {
-            addNotification(address!, { type: 'error', message: 'Please enter a valid timeout in seconds.' });
+            addNotification({ type: 'error', message: 'Please enter a valid timeout in seconds.' });
             return;
         }
         try {
@@ -68,10 +68,10 @@ const TimeoutManagement = () => {
                 args: [BigInt(sellerTimeout)],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification(address!, { type: 'success', message: 'Seller release timeout updated!' });
+            addNotification({ type: 'success', message: 'Seller release timeout updated!' });
             refetch(); // Refresh both values
         } catch (err: any) {
-            addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }

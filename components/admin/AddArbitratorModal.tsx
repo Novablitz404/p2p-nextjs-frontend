@@ -35,7 +35,7 @@ const AddArbitratorModal = ({ isOpen, onClose, onSuccess }: AddArbitratorModalPr
 
     const handleAdd = async () => {
         if (!isAddress(arbitratorAddress)) {
-            addNotification(address!, { type: 'error', message: 'Please enter a valid Ethereum address.' });
+            addNotification({ type: 'error', message: 'Please enter a valid Ethereum address.' });
             return;
         }
         
@@ -47,12 +47,12 @@ const AddArbitratorModal = ({ isOpen, onClose, onSuccess }: AddArbitratorModalPr
             });
             await waitForTransactionReceipt(config, { hash });
             
-            addNotification(address!, { type: 'success', message: 'Arbitrator added successfully!' });
+            addNotification({ type: 'success', message: 'Arbitrator added successfully!' });
             setArbitratorAddress('');
             onSuccess();
             onClose();
         } catch (err: any) {
-            addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }

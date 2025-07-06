@@ -35,7 +35,7 @@ const AddManagerModal = ({ isOpen, onClose, onSuccess }: AddManagerModalProps) =
 
     const handleAdd = async () => {
         if (!isAddress(managerAddress)) {
-            addNotification(address!, { type: 'error', message: 'Please enter a valid Ethereum address.' });
+            addNotification({ type: 'error', message: 'Please enter a valid Ethereum address.' });
             return;
         }
         
@@ -47,12 +47,12 @@ const AddManagerModal = ({ isOpen, onClose, onSuccess }: AddManagerModalProps) =
             });
             await waitForTransactionReceipt(config, { hash });
             
-            addNotification(address!, { type: 'success', message: 'Manager added successfully!' });
+            addNotification({ type: 'success', message: 'Manager added successfully!' });
             setManagerAddress('');
             onSuccess();
             onClose();
         } catch (err: any) {
-            addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }

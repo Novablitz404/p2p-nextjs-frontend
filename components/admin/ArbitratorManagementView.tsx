@@ -67,10 +67,10 @@ const ArbitratorManagementView = () => {
                 args: [addressToRemove as `0x${string}`],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification(address!, { type: 'success', message: 'Arbitrator removed successfully!' });
+            addNotification({ type: 'success', message: 'Arbitrator removed successfully!' });
             refetch(); // Refresh the list
         } catch (err: any) {
-             addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+             addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }

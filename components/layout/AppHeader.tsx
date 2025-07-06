@@ -22,7 +22,7 @@ const AppHeader = () => {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+
   const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
   
   const pathname = usePathname();
@@ -76,7 +76,7 @@ const AppHeader = () => {
           <div className="flex items-center gap-3">
             {address ? (
               <>
-                <NotificationBell onClick={() => setIsNotificationCenterOpen(true)} />
+                <NotificationBell />
                 <button
                   onClick={() => setIsSidebarOpen(true)}
                   className="hidden sm:flex items-center bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-full px-4 py-2 hover:border-emerald-500/50 hover:from-slate-700 hover:to-slate-600 transition-all duration-300"
@@ -199,10 +199,7 @@ const AppHeader = () => {
 
       {/* Your existing Modals and Sidebars */}
       <WalletSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <NotificationCenter
-        isOpen={isNotificationCenterOpen}
-        onClose={() => setIsNotificationCenterOpen(false)}
-      />
+
       <WalletSelectorModal
         isOpen={isWalletSelectorOpen}
         onClose={() => setIsWalletSelectorOpen(false)}

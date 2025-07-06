@@ -80,9 +80,9 @@ const SellerDashboard = ({
         selectedPaymentMethodIds: string[], fiatCurrency: string
     ) => {
         const selectedToken = tokenList.find(t => t.address === tokenAddress);
-        if (!selectedToken) { addNotification(userId, { type: 'error', message: 'Invalid token selected.' }); return; }
+        if (!selectedToken) { addNotification({ type: 'error', message: 'Invalid token selected.' }); return; }
         const selectedMethods = myPaymentMethods.filter(m => selectedPaymentMethodIds.includes(m.id));
-        if (selectedMethods.length === 0) { addNotification(userId, { type: 'error', message: 'Please select at least one payment method.' }); return; }
+        if (selectedMethods.length === 0) { addNotification({ type: 'error', message: 'Please select at least one payment method.' }); return; }
         setPendingOrderArgs({ tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate });
         setIsRiskModalOpen(true);
     };
@@ -105,14 +105,14 @@ const SellerDashboard = ({
                     args: [amountInWei], value: totalValueToSend,
                 });
             } else {
-                addNotification(address, { type: 'info', message: 'Step 1/2: Approving token...' });
+                addNotification({ type: 'info', message: 'Step 1/2: Approving token...' });
                 const approveHash = await writeContractAsync({
                     address: tokenAddress as `0x${string}`, abi: erc20Abi,
                     functionName: 'approve', args: [P2P_CONTRACT_CONFIG.address, amountInWei],
                 });
                 await waitForTransactionReceipt(config, { hash: approveHash });
     
-                addNotification(address, { type: 'info', message: 'Step 2/2: Creating order...' });
+                addNotification({ type: 'info', message: 'Step 2/2: Creating order...' });
                 transactionHash = await writeContractAsync({
                     ...P2P_CONTRACT_CONFIG, functionName: 'createAndFundOrder',
                     args: [tokenAddress as `0x${string}`, amountInWei],

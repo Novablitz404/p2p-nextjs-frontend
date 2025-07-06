@@ -40,7 +40,7 @@ const FeeManagement = () => {
 
     const handleSetFee = async () => {
         if (!feeBps || parseInt(feeBps) < 0) {
-            addNotification(address!, { type: 'error', message: 'Please enter a valid, non-negative number for the fee.' });
+            addNotification({ type: 'error', message: 'Please enter a valid, non-negative number for the fee.' });
             return;
         }
         try {
@@ -50,10 +50,10 @@ const FeeManagement = () => {
                 args: [BigInt(feeBps)],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification(address!, { type: 'success', message: 'Platform fee updated successfully!' });
+            addNotification({ type: 'success', message: 'Platform fee updated successfully!' });
             refetchFee(); // Refresh the displayed value
         } catch (err: any) {
-            addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }
@@ -61,7 +61,7 @@ const FeeManagement = () => {
 
     const handleSetRecipient = async () => {
         if (!isAddress(recipient)) {
-            addNotification(address!, { type: 'error', message: 'Please enter a valid Ethereum address.' });
+            addNotification({ type: 'error', message: 'Please enter a valid Ethereum address.' });
             return;
         }
         try {
@@ -71,10 +71,10 @@ const FeeManagement = () => {
                 args: [recipient],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification(address!, { type: 'success', message: 'Fee recipient updated successfully!' });
+            addNotification({ type: 'success', message: 'Fee recipient updated successfully!' });
             refetchRecipient(); // Refresh the displayed value
         } catch (err: any) {
-            addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }

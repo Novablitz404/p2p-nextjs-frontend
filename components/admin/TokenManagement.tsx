@@ -81,10 +81,10 @@ const TokenManagement = () => {
                 args: [addressToRemove as `0x${string}`],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification(address!, { type: 'success', message: 'Token removed successfully!' });
+            addNotification({ type: 'success', message: 'Token removed successfully!' });
             refetch(); // Refresh the token list
         } catch (err: any) {
-            addNotification(address!, { type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
         } finally {
             reset();
         }

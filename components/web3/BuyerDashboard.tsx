@@ -133,7 +133,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
 
     const executeMatchFinding = async () => {
         setIsRiskModalOpen(false);
-        if (!selectedToken || !userId) { addNotification(userId, { type: 'error', message: 'Please connect wallet and select a token.' }); return; }
+        if (!selectedToken || !userId) { addNotification({ type: 'error', message: 'Please connect wallet and select a token.' }); return; }
     
         setIsMatching(true);
         try {
@@ -150,7 +150,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
             
             const q = query(collection(db, "orders"), where('status', '==', 'OPEN'), where('paymentMethods', 'array-contains', paymentMethod), where('tokenAddress', '==', selectedTokenAddress), where('fiatCurrency', '==', fiatCurrency));
             const orderSnapshot = await getDocs(q);
-            if (orderSnapshot.empty) { addNotification(userId, { type: 'info', message: 'No open orders found for your criteria.' }); setIsMatching(false); return; }
+            if (orderSnapshot.empty) { addNotification({ type: 'info', message: 'No open orders found for your criteria.' }); setIsMatching(false); return; }
     
             const buyerMaxMarkup = maxMarkup ? parseFloat(maxMarkup) : null;
             let allPotentialOrders: Order[] = [];
@@ -161,7 +161,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
                 allPotentialOrders.push(order);
             });
     
-            if (allPotentialOrders.length === 0) { addNotification(userId, { type: 'info', message: 'No orders found that meet all criteria.' }); setIsMatching(false); return; }
+            if (allPotentialOrders.length === 0) { addNotification({ type: 'info', message: 'No orders found that meet all criteria.' }); setIsMatching(false); return; }
     
             const sellerIds = [...new Set(allPotentialOrders.map(o => o.seller))];
             const profiles: { [key: string]: UserProfile } = {};
@@ -186,7 +186,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
             });
 
             if (ordersWithSufficientAmount.length === 0) {
-                addNotification(userId, { type: 'info', message: 'No orders found with sufficient remaining amount.' });
+                addNotification({ type: 'info', message: 'No orders found with sufficient remaining amount.' });
                 setIsMatching(false);
                 return;
             }
@@ -277,7 +277,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
 
                 if (amountToFillInWei > 0n) {
                     const amountFound = formatUnits(buyAmountInWei - amountToFillInWei, selectedToken.decimals);
-                    addNotification(userId, { type: 'error', message: `Insufficient Liquidity: Could only find ${parseFloat(amountFound).toFixed(2)} assets.` });
+                    addNotification({ type: 'error', message: `Insufficient Liquidity: Could only find ${parseFloat(amountFound).toFixed(2)} assets.` });
                     setIsMatching(false); return;
                 }
                 
@@ -288,7 +288,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
             setIsSellerSuggestionModalOpen(true);
     
         } catch (error: any) {
-            addNotification(userId, { type: 'error', message: 'Could not search for matches: ' + error.message });
+            addNotification({ type: 'error', message: 'Could not search for matches: ' + error.message });
         } finally {
             setIsMatching(false);
         }
@@ -314,7 +314,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
     const handleConfirmTrade = async (finalTradePlan: TradePlan) => {
         if (!finalTradePlan || !finalTradePlan.matches.length) return;
         
-        addNotification(userId, { type: 'info', message: 'Please confirm in your wallet to lock the trades.' });
+        addNotification({ type: 'info', message: 'Please confirm in your wallet to lock the trades.' });
 
         try {
             const orderIds = finalTradePlan.matches.map(match => BigInt(match.onChainId));
@@ -326,7 +326,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
                 args: [orderIds, amountsToLockInWei],
             });
 
-            addNotification(userId, { type: 'info', message: 'Transaction sent! Waiting for confirmation...' });
+            addNotification({ type: 'info', message: 'Transaction sent! Waiting for confirmation...' });
             const receipt = await waitForTransactionReceipt(config, { hash });
 
             if (receipt.status !== 'success') throw new Error('Transaction failed on-chain.');
@@ -376,7 +376,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
             
             await batch.commit();
     
-            addNotification(userId, { 
+            addNotification({ 
                 type: 'success', 
                 message: `${tradeLogs.length} new trades are available!`,
                 link: '/dapp/trades' // Add the link here
@@ -386,7 +386,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
     
         } catch (error: any) {
             console.error("Lock Trade Error:", error);
-            addNotification(userId, { type: 'error', message: `Could not lock trade(s): ${error.shortMessage || error.message}` });
+            addNotification({ type: 'error', message: `Could not lock trade(s): ${error.shortMessage || error.message}` });
         } finally {
             reset();
         }
