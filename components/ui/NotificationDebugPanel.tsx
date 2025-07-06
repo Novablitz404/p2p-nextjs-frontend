@@ -5,6 +5,8 @@ import { messagingService } from '@/lib/messaging';
 import { getNotificationPermissionStatus } from '@/lib/notificationUtils';
 import { testVapidKey } from '@/lib/testVapidKey';
 import { runFirebaseDiagnostics, getFirebaseProjectInfo } from '@/lib/firebaseDiagnostics';
+import { verifyVapidKeyWithProject, getFirebaseConsoleInstructions } from '@/lib/verifyVapidKey';
+import EnvironmentChecker from './EnvironmentChecker';
 
 interface NotificationDebugPanelProps {
   isOpen: boolean;
@@ -142,6 +144,18 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
     }
   };
 
+  const showFirebaseConsoleInstructions = () => {
+    const instructions = getFirebaseConsoleInstructions();
+    let report = `📋 ${instructions.title}\n\n`;
+    
+    instructions.steps.forEach((step: any) => {
+      report += `${step.step}. ${step.title}\n`;
+      report += `   ${step.description}\n\n`;
+    });
+    
+    alert(report);
+  };
+
   const runComprehensiveDiagnostics = async () => {
     try {
       setIsLoading(true);
@@ -200,6 +214,21 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
         diagnostics.errors.forEach((error: string, index: number) => {
           report += `  ${index + 1}. ${error}\n`;
         });
+      }
+      
+      // Add VAPID verification
+      const vapidVerification = await verifyVapidKeyWithProject();
+      report += `\n🔑 VAPID VERIFICATION:\n`;
+      report += `  - Valid: ${vapidVerification.valid ? 'Yes' : 'No'}\n`;
+      if (vapidVerification.valid) {
+        report += `  - Message: ${vapidVerification.message}\n`;
+        report += `  - Next Steps:\n`;
+        vapidVerification.nextSteps?.forEach((step: string) => {
+          report += `    ${step}\n`;
+        });
+      } else {
+        report += `  - Error: ${vapidVerification.error}\n`;
+        report += `  - Suggestion: ${vapidVerification.suggestion}\n`;
       }
       
       alert(report);
@@ -276,6 +305,9 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
               </div>
             </div>
 
+            {/* Environment Variables Check */}
+            <EnvironmentChecker />
+
             {/* Actions */}
             <div className="flex gap-3 pt-4 border-t border-slate-600">
               <button
@@ -313,6 +345,12 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
                 className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
               >
                 🔍 Run Full Diagnostics
+              </button>
+              <button
+                onClick={showFirebaseConsoleInstructions}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+              >
+                📋 Firebase Console Guide
               </button>
             </div>
 
