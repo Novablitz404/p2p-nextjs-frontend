@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AppNotification } from '@/types';
 
 interface NotificationContextType {
   isSupported: boolean;
@@ -14,6 +15,9 @@ interface NotificationContextType {
   unreadCount: number;
   pushEnabled: boolean;
   showPermissionPrompt: () => void;
+  notifications: AppNotification[];
+  markAsRead: (id: string) => void;
+  clearAll: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -35,6 +39,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [vapidPublicKey, setVapidPublicKey] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   // Check if push notifications are supported
   useEffect(() => {
@@ -172,11 +177,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Add the addNotification method that components expect
   const addNotification = (userId: string, notification: { type: 'success' | 'error' | 'info'; message: string; link?: string }) => {
-    // For now, just log the notification
-    console.log('Notification:', { userId, ...notification });
+    // Create a new notification with proper structure
+    const newNotification: AppNotification = {
+      id: Date.now().toString(),
+      type: notification.type,
+      message: notification.message,
+      timestamp: { toDate: () => new Date() } as any, // Mock timestamp for now
+      read: false,
+      link: notification.link
+    };
     
-    // You can implement actual notification logic here
-    // For example, save to Firestore, show toast, etc.
+    setNotifications(prev => [newNotification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+    
+    console.log('Notification added:', newNotification);
   };
 
   // Add missing properties
@@ -186,6 +200,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (permission === 'default') {
       Notification.requestPermission();
     }
+  };
+
+  // Add notification management functions
+  const markAsRead = (id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      const newUnreadCount = updated.filter(n => !n.read).length;
+      setUnreadCount(newUnreadCount);
+      return updated;
+    });
+  };
+
+  const clearAll = () => {
+    setNotifications([]);
+    setUnreadCount(0);
   };
 
   const value: NotificationContextType = {
@@ -199,7 +228,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     addNotification,
     unreadCount,
     pushEnabled,
-    showPermissionPrompt
+    showPermissionPrompt,
+    notifications,
+    markAsRead,
+    clearAll
   };
 
   return (
