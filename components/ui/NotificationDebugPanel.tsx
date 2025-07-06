@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { messagingService } from '@/lib/messaging';
 import { getNotificationPermissionStatus } from '@/lib/notificationUtils';
 import { testVapidKey } from '@/lib/testVapidKey';
+import { runFirebaseDiagnostics, getFirebaseProjectInfo } from '@/lib/firebaseDiagnostics';
 
 interface NotificationDebugPanelProps {
   isOpen: boolean;
@@ -141,6 +142,75 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
     }
   };
 
+  const runComprehensiveDiagnostics = async () => {
+    try {
+      setIsLoading(true);
+      const diagnostics = await runFirebaseDiagnostics();
+      console.log('Comprehensive diagnostics:', diagnostics);
+      
+      // Create a detailed report
+      let report = '🔍 FIREBASE DIAGNOSTICS REPORT\n\n';
+      
+      // Environment
+      report += `📱 Environment: ${diagnostics.environment.nodeEnv}\n`;
+      report += `🌐 User Agent: ${diagnostics.environment.userAgent.substring(0, 50)}...\n\n`;
+      
+      // Firebase Config
+      report += `🔥 Firebase Project: ${diagnostics.firebase.config.projectId}\n`;
+      report += `📧 Messaging Sender ID: ${diagnostics.firebase.config.messagingSenderId}\n`;
+      report += `🔑 VAPID Key: ${diagnostics.firebase.vapidKey.present ? 'Present' : 'Missing'}\n`;
+      report += `📏 VAPID Length: ${diagnostics.firebase.vapidKey.length}\n`;
+      report += `✅ VAPID Format: ${diagnostics.firebase.vapidKey.startsWithB ? 'Correct' : 'Incorrect'}\n\n`;
+      
+      // Browser Support
+      report += `🔧 Service Worker Support: ${diagnostics.browser.serviceWorker ? 'Yes' : 'No'}\n`;
+      report += `🔔 Notification Support: ${diagnostics.browser.notifications ? 'Yes' : 'No'}\n`;
+      report += `📋 Permission: ${diagnostics.browser.permission}\n\n`;
+      
+      // Service Worker
+      if (diagnostics.serviceWorker) {
+        report += `⚙️ Service Worker:\n`;
+        report += `  - Exists: ${diagnostics.serviceWorker.exists}\n`;
+        report += `  - Active: ${diagnostics.serviceWorker.active}\n`;
+        report += `  - Controller: ${diagnostics.serviceWorker.controller}\n`;
+        report += `  - State: ${diagnostics.serviceWorker.state}\n\n`;
+      }
+      
+      // FCM Test
+      if (diagnostics.fcmTest) {
+        report += `🚀 FCM Test: ${diagnostics.fcmTest.success ? 'SUCCESS' : 'FAILED'}\n`;
+        if (diagnostics.fcmTest.success) {
+          report += `  - Token Length: ${diagnostics.fcmTest.tokenLength}\n`;
+          report += `  - Token Preview: ${diagnostics.fcmTest.tokenPreview}\n`;
+        } else {
+          report += `  - Error: ${diagnostics.fcmTest.error}\n`;
+          report += `  - Error Type: ${diagnostics.fcmTest.errorType}\n`;
+        }
+        report += '\n';
+      }
+      
+      // Network
+      if (diagnostics.network) {
+        report += `🌐 Network: FCM Reachable: ${diagnostics.network.fcmReachable ? 'Yes' : 'No'}\n\n`;
+      }
+      
+      // Errors
+      if (diagnostics.errors.length > 0) {
+        report += `❌ ERRORS:\n`;
+        diagnostics.errors.forEach((error: string, index: number) => {
+          report += `  ${index + 1}. ${error}\n`;
+        });
+      }
+      
+      alert(report);
+    } catch (error) {
+      console.error('Diagnostics failed:', error);
+      alert(`❌ Diagnostics failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       gatherDebugInfo();
@@ -237,6 +307,12 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
                 className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
               >
                 Test VAPID Key
+              </button>
+              <button
+                onClick={runComprehensiveDiagnostics}
+                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+              >
+                🔍 Run Full Diagnostics
               </button>
             </div>
 
