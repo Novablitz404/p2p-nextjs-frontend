@@ -7,6 +7,8 @@ import { testVapidKey } from '@/lib/testVapidKey';
 import { runFirebaseDiagnostics, getFirebaseProjectInfo } from '@/lib/firebaseDiagnostics';
 import { verifyVapidKeyWithProject, getFirebaseConsoleInstructions } from '@/lib/verifyVapidKey';
 import { testFirebaseProjectConfig, getFirebaseConsoleChecklist } from '@/lib/firebaseProjectTest';
+import { checkFirebaseAuthConfig, getFirebaseAuthInstructions } from '@/lib/checkFirebaseAuth';
+import { runComprehensivePushTest, getPushNotificationTroubleshooting } from '@/lib/pushNotificationTest';
 import EnvironmentChecker from './EnvironmentChecker';
 
 interface NotificationDebugPanelProps {
@@ -203,6 +205,107 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
     alert(report);
   };
 
+  const checkFirebaseAuth = async () => {
+    try {
+      const authConfig = await checkFirebaseAuthConfig();
+      console.log('Firebase Auth config:', authConfig);
+      
+      let report = `🔐 FIREBASE AUTHENTICATION CONFIG\n\n`;
+      report += `Auth Domain: ${authConfig.authDomain}\n`;
+      report += `Current Domain: ${authConfig.currentDomain}\n`;
+      report += `Domain Match: ${authConfig.domainMatch ? '✅ Yes' : '❌ No'}\n`;
+      report += `Auth Initialized: ${authConfig.authInitialized ? '✅ Yes' : '❌ No'}\n\n`;
+      
+      if (authConfig.error) {
+        report += `❌ Error: ${authConfig.error}\n\n`;
+      }
+      
+      if (authConfig.issues.length > 0) {
+        report += `⚠️ Issues:\n`;
+        authConfig.issues.forEach((issue: string) => {
+          report += `  - ${issue}\n`;
+        });
+        report += '\n';
+      }
+      
+      if (authConfig.domainMatch && authConfig.authInitialized) {
+        report += `✅ Firebase Auth looks good!\n`;
+        report += `The authorized domains should be automatically handled.\n`;
+      } else {
+        report += `⚠️ You may need to add authorized domains manually.\n`;
+        report += `Check the Firebase Console instructions.\n`;
+      }
+      
+      alert(report);
+    } catch (error) {
+      console.error('Firebase Auth check failed:', error);
+      alert(`❌ Firebase Auth check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const showFirebaseAuthInstructions = () => {
+    const instructions = getFirebaseAuthInstructions();
+    let report = `📋 ${instructions.title}\n\n`;
+    
+    instructions.steps.forEach((step: any) => {
+      const critical = step.critical ? ' 🔴' : ' 🔵';
+      report += `${step.step}.${critical} ${step.title}\n`;
+      report += `   ${step.description}\n\n`;
+    });
+    
+    alert(report);
+  };
+
+  const runComprehensivePushTestLocal = async () => {
+    try {
+      setIsLoading(true);
+      const results = await runComprehensivePushTest();
+      console.log('Comprehensive push test results:', results);
+      
+      let report = `🚀 COMPREHENSIVE PUSH NOTIFICATION TEST\n\n`;
+      report += `Progress: ${results.step}/${results.totalSteps}\n`;
+      report += `Success: ${results.success ? '✅ Yes' : '❌ No'}\n\n`;
+      
+      // Show step details
+      for (let i = 1; i <= results.step; i++) {
+        const stepDetail = results.details[`step${i}`];
+        if (stepDetail) {
+          report += `Step ${i}: ${stepDetail}\n`;
+        }
+      }
+      
+      if (results.success) {
+        report += `\n✅ ALL TESTS PASSED!\n`;
+        report += `FCM Token: ${results.details.fcmToken}\n`;
+        report += `Token Length: ${results.details.fcmTokenLength}\n`;
+        report += `\nPush notifications should work correctly now!`;
+      } else {
+        report += `\n❌ TEST FAILED AT STEP ${results.step}\n`;
+        if (results.errors.length > 0) {
+          const lastError = results.errors[results.errors.length - 1];
+          report += `Error: ${lastError.error}\n`;
+          report += `Details: ${lastError.details}\n`;
+        }
+        
+        // Get troubleshooting steps
+        const troubleshooting = getPushNotificationTroubleshooting(results);
+        report += `\n🔧 TROUBLESHOOTING STEPS:\n`;
+        troubleshooting.steps.forEach((step: any) => {
+          report += `${step.step} ${step.title}\n`;
+          report += `   ${step.description}\n`;
+          report += `   Action: ${step.action}\n\n`;
+        });
+      }
+      
+      alert(report);
+    } catch (error) {
+      console.error('Comprehensive push test failed:', error);
+      alert(`❌ Comprehensive push test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const runComprehensiveDiagnostics = async () => {
     try {
       setIsLoading(true);
@@ -392,6 +495,24 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
               >
                 📋 Firebase Console Checklist
+              </button>
+              <button
+                onClick={checkFirebaseAuth}
+                className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors"
+              >
+                🔐 Check Firebase Auth
+              </button>
+              <button
+                onClick={showFirebaseAuthInstructions}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+              >
+                📋 Auth Setup Guide
+              </button>
+              <button
+                onClick={runComprehensivePushTestLocal}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors"
+              >
+                🚀 Comprehensive Push Test
               </button>
               <button
                 onClick={testVapidKeyConfig}
