@@ -29,6 +29,7 @@ const PaymentInstructionsModal = dynamic(() => import('@/components/web3/Payment
 const ImageViewModal = dynamic(() => import('@/components/ui/ImageViewModal'));
 const LeaveReviewModal = dynamic(() => import('@/components/modals/LeaveReviewModal'));
 const FundsReleasedModal = dynamic(() => import('@/components/modals/FundsReleasedModal'));
+const DisputeExplanationModal = dynamic(() => import('@/components/modals/DisputeExplanationModal'));
 
 const P2P_CONTRACT_CONFIG = {
     address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
@@ -59,6 +60,8 @@ const TradesPage = () => {
     const TRADES_PER_PAGE = 6;
     const [releasedTrade, setReleasedTrade] = useState<Trade | null>(null);
     const [isReleasedModalOpen, setIsReleasedModalOpen] = useState(false);
+    const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+    const [disputeTrade, setDisputeTrade] = useState<Trade | null>(null);
     
     // This ref helps us track the previous state of the trades
     const previousBuyTrades = useRef<Trade[]>([]);
@@ -183,15 +186,45 @@ const TradesPage = () => {
     };
 
     const handleDispute = async (trade: Trade) => {
-        setProcessingTradeId(trade.id);
+        setDisputeTrade(trade);
+        setIsDisputeModalOpen(true);
+    };
+
+    const handleDisputeWithExplanation = async (explanation: string) => {
+        if (!disputeTrade) return;
+        
+        setProcessingTradeId(disputeTrade.id);
         try {
-            const hash = await writeContractAsync({ ...P2P_CONTRACT_CONFIG, functionName: 'raiseDispute', args: [BigInt(trade.onChainId)] });
+            const hash = await writeContractAsync({ 
+                ...P2P_CONTRACT_CONFIG, 
+                functionName: 'raiseDispute', 
+                args: [BigInt(disputeTrade.onChainId)] 
+            });
+            
             await waitForTransactionReceipt(config, { hash });
-            await updateDoc(doc(db, "trades", trade.id), { status: 'DISPUTED' });
-            setNotification({ isOpen: true, title: "Dispute Raised", message: "An arbitrator will review your case." });
+            
+            // Update trade with dispute information
+            await updateDoc(doc(db, "trades", disputeTrade.id), { 
+                status: 'DISPUTED',
+                disputeExplanation: explanation,
+                disputeRaisedAt: serverTimestamp(),
+                disputeRaisedBy: address
+            });
+            
+            setNotification({ 
+                isOpen: true, 
+                title: "Dispute Raised", 
+                message: "An arbitrator will review your case." 
+            });
             setIsPaymentModalOpen(false);
+            setIsDisputeModalOpen(false);
+            setDisputeTrade(null);
         } catch (error: any) {
-             setNotification({ isOpen: true, title: "Failed", message: error.shortMessage || "Could not raise dispute." });
+            setNotification({ 
+                isOpen: true, 
+                title: "Failed", 
+                message: error.shortMessage || "Could not raise dispute." 
+            });
         } finally {
             setProcessingTradeId(null);
             reset();
@@ -430,6 +463,16 @@ const TradesPage = () => {
                 onDispute={async () => { if (activeTrade) await handleDispute(activeTrade); }}
                 isConfirmingFiat={isPending && processingTradeId === activeTrade?.id}
                 releaseTimeout={sellerReleaseTimeout}
+            />
+            <DisputeExplanationModal
+                isOpen={isDisputeModalOpen}
+                onClose={() => {
+                    setIsDisputeModalOpen(false);
+                    setDisputeTrade(null);
+                }}
+                onConfirm={handleDisputeWithExplanation}
+                trade={disputeTrade}
+                isProcessing={isPending && processingTradeId === disputeTrade?.id}
             />
             <NotificationModal
                 onClose={() => setNotification({ isOpen: false, title: '', message: ''})} 

@@ -72,6 +72,13 @@ export interface Trade {
     creationTxHash?: string;
     cancellationTxHash?: string;
     reviewLeft?: boolean;
+    disputeExplanation?: string;
+    disputeRaisedAt?: Timestamp;
+    disputeRaisedBy?: string;
+    arbitratorAddress?: string;
+    disputeResolvedAt?: Timestamp;
+    disputeResolutionTime?: number;
+    disputeWinner?: string;
 }
 
 
@@ -87,6 +94,8 @@ export interface UserProfile {
     ratingCount: number;
     tradeCount?: number; 
     cancellationCount?: number;
+    averageReleaseTime?: number;
+    releaseTimeCount?: number;
 }
 
 export interface Review {

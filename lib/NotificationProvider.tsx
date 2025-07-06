@@ -6,6 +6,7 @@ import { db } from './firebase';
 import { collection, query, onSnapshot, orderBy, limit, doc, updateDoc, writeBatch, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { AppNotification } from '@/types';
+import { messagingService } from './messaging';
 
 export interface ModalNotification {
     isOpen: boolean;
@@ -21,6 +22,7 @@ export interface NotificationContextType {
     unreadCount: number;
     modalNotification: ModalNotification | null;
     closeModalNotification: () => void;
+    pushEnabled: boolean;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -30,10 +32,31 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
     const [modalNotification, setModalNotification] = useState<ModalNotification | null>(null);
+    const [pushEnabled, setPushEnabled] = useState(false);
 
     useEffect(() => {
         setAudio(new Audio('/Ramp Notification.mp3'));
     }, []);
+
+    // Initialize push notifications when user connects
+    useEffect(() => {
+        if (address) {
+            messagingService.initialize(address).then(() => {
+                setPushEnabled(true);
+            });
+            
+            // Setup foreground message handler
+            messagingService.setupForegroundHandler((payload) => {
+                console.log('Received foreground push notification:', payload);
+                // Play sound for foreground notifications
+                audio?.play().catch(e => console.error("Error playing sound:", e));
+            });
+        } else {
+            messagingService.cleanup(address || '').then(() => {
+                setPushEnabled(false);
+            });
+        }
+    }, [address, audio]);
 
     useEffect(() => {
         if (!address) {
@@ -103,7 +126,16 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    const value = { notifications, addNotification, markAsRead, clearAll, unreadCount, modalNotification, closeModalNotification };
+    const value = { 
+        notifications, 
+        addNotification, 
+        markAsRead, 
+        clearAll, 
+        unreadCount, 
+        modalNotification, 
+        closeModalNotification,
+        pushEnabled 
+    };
 
     return (
         <NotificationContext.Provider value={value}>

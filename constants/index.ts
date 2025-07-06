@@ -35,3 +35,41 @@ export const SUPPORTED_NETWORKS: NetworkConfig[] = [
 
 // Define the default network your app should run on
 export const DEFAULT_CHAIN_ID = BASE_SEPOLIA_CONFIG.chainId;
+
+// Currency to Payment Method Mapping
+export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
+    'PHP': [
+        'GCash',
+        'PayMaya',
+        'Bank Transfer',
+        'Cash Pickup',
+        'Palawan Express',
+        'Western Union',
+        'MoneyGram'
+    ],
+    'USD': [
+        'PayPal',
+        'Venmo',
+        'Zelle',
+        'Bank Transfer',
+        'Cash App',
+        'Western Union',
+        'MoneyGram'
+    ],
+    'EUR': [
+        'PayPal',
+        'Bank Transfer',
+        'SEPA Transfer',
+        'Western Union',
+        'MoneyGram',
+        'Revolut',
+        'N26'
+    ],
+    'THB': [
+        'PromptPay',
+        'Bank Transfer',
+        'Cash Pickup',
+        'Western Union',
+        'MoneyGram'
+    ]
+};

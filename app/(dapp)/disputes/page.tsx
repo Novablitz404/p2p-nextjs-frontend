@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { Trade } from '@/types';
 import dynamic from 'next/dynamic';
 
@@ -77,7 +77,29 @@ const DisputesPage = () => {
             const isBuyerWinner = winnerAddress.toLowerCase() === trade.buyer.toLowerCase();
             const finalStatus = isBuyerWinner ? 'RELEASED' : 'CANCELED';
             
-            const tradeUpdateData: { status: string; releaseTxHash?: string } = { status: finalStatus };
+            // Calculate resolution time
+            const resolutionTime = trade.disputeRaisedAt ? 
+                Math.floor((Date.now() - trade.disputeRaisedAt.toDate().getTime()) / 1000) : 
+                undefined;
+            
+            const tradeUpdateData: { 
+                status: string; 
+                releaseTxHash?: string;
+                arbitratorAddress?: string;
+                disputeResolvedAt?: any;
+                disputeResolutionTime?: number;
+                disputeWinner?: string;
+            } = { 
+                status: finalStatus,
+                arbitratorAddress: address,
+                disputeResolvedAt: serverTimestamp(),
+                disputeWinner: winnerAddress
+            };
+            
+            if (resolutionTime !== undefined) {
+                tradeUpdateData.disputeResolutionTime = resolutionTime;
+            }
+            
             if (isBuyerWinner) {
                 tradeUpdateData.releaseTxHash = hash;
             }

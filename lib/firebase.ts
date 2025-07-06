@@ -2,6 +2,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getFirestore, runTransaction } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -25,5 +26,15 @@ const auth = getAuth(app);
 // NEW INSTANCE: Create the storage instance
 const storage = getStorage(app);
 
-// UPDATED EXPORT: Add 'storage' to the export list
-export { db, auth, storage, runTransaction };
+// Initialize messaging
+let messaging: any = null;
+if (typeof window !== 'undefined') {
+  try {
+    messaging = getMessaging(app);
+  } catch (error) {
+    console.log('Messaging not supported:', error);
+  }
+}
+
+// UPDATED EXPORT: Add messaging to the export list
+export { db, auth, storage, messaging, runTransaction };

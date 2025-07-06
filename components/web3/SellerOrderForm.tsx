@@ -6,6 +6,7 @@ import Spinner from '../ui/Spinner';
 import { Token } from '@/types';
 import { ChevronDown, X } from 'lucide-react';
 import Image from 'next/image';
+import { CURRENCY_PAYMENT_METHODS } from '@/constants';
 
 const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
 const MultiSelectPaymentModal = dynamic(() => import('../ui/MultiSelectPaymentModal'));
@@ -74,6 +75,16 @@ const SellerOrderForm = ({
     const selectedToken = tokenList.find(t => t.address === selectedTokenAddress);
     const countryCode = currencyCountryMap[fiatCurrency] || 'xx';
 
+    // Filter payment methods based on selected currency
+    const availablePaymentMethods = useMemo(() => {
+        const currencyMethods = CURRENCY_PAYMENT_METHODS[fiatCurrency] || [];
+        return myPaymentMethods.filter(method => 
+            currencyMethods.includes(method.channel)
+        );
+    }, [myPaymentMethods, fiatCurrency]);
+
+    const selectedMethods = availablePaymentMethods.filter(m => selectedPaymentMethodIds.includes(m.id));
+
     const finalPriceRate = useMemo(() => {
         if (marketPrice === null) return null;
         return marketPrice * (1 + markupPercentage / 100);
@@ -141,8 +152,6 @@ const SellerOrderForm = ({
         // Clearing the form is now handled by the parent if needed,
         // which prevents the UI from resetting prematurely.
     };
-    
-    const selectedMethods = myPaymentMethods.filter(m => selectedPaymentMethodIds.includes(m.id));
 
     return (
         <>
@@ -156,7 +165,7 @@ const SellerOrderForm = ({
                         <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700 hover:bg-slate-600 rounded-r-lg transition-colors">
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
-                                    <img src={`https://effigy.im/a/${selectedTokenAddress}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />
+                                    <img src={selectedToken && selectedToken.symbol === 'ETH' ? '/eth.svg' : selectedToken && selectedToken.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${selectedTokenAddress}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />
                                     <span className="font-bold text-white">{selectedToken?.symbol}</span>
                                     <ChevronDown className="h-5 w-5 text-gray-400 ml-1" />
                                 </>
@@ -193,9 +202,14 @@ const SellerOrderForm = ({
                 
                 <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Receive payment via</label>
-                    <div onClick={() => myPaymentMethods.length > 0 && setIsPaymentModalOpen(true)} className="w-full bg-slate-900 text-white rounded-lg p-2 text-lg transition border border-slate-700 min-h-[50px] flex items-center flex-wrap gap-2 cursor-pointer hover:border-slate-600">
+                    <div onClick={() => availablePaymentMethods.length > 0 && setIsPaymentModalOpen(true)} className="w-full bg-slate-900 text-white rounded-lg p-2 text-lg transition border border-slate-700 min-h-[50px] flex items-center flex-wrap gap-2 cursor-pointer hover:border-slate-600">
                         {selectedMethods.length === 0 ? (
-                            <span className="text-gray-500 px-2">{myPaymentMethods.length > 0 ? "Select payment methods..." : "Please add a payment method first."}</span>
+                            <span className="text-gray-500 px-2">
+                                {availablePaymentMethods.length > 0 
+                                    ? "Select payment methods..." 
+                                    : `No payment methods available for ${fiatCurrency}. Please add payment methods that support ${fiatCurrency}.`
+                                }
+                            </span>
                         ) : (
                             selectedMethods.map(method => (
                                 <span key={method.id} className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-sm font-semibold px-2 py-1 rounded-full">
@@ -207,12 +221,17 @@ const SellerOrderForm = ({
                             ))
                         )}
                     </div>
+                    {availablePaymentMethods.length === 0 && myPaymentMethods.length > 0 && (
+                        <p className="text-xs text-yellow-400 mt-1">
+                            Available for {fiatCurrency}: {CURRENCY_PAYMENT_METHODS[fiatCurrency]?.join(', ') || 'None'}
+                        </p>
+                    )}
                 </div>
 
                 {/* --- THIS IS THE FIX --- */}
                 <button 
                     type="submit" 
-                    disabled={isProcessing || isLoadingTokens || isPriceLoading || myPaymentMethods.length === 0} 
+                    disabled={isProcessing || isLoadingTokens || isPriceLoading || availablePaymentMethods.length === 0} 
                     className="w-full font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-red-400 text-white text-lg disabled:opacity-50"
                 >
                     {isProcessing ? <Spinner text="Confirming..."/> : 'Create Sell Order'}
@@ -220,7 +239,7 @@ const SellerOrderForm = ({
             </form>
 
             <TokenSelectorModal isOpen={isTokenModalOpen} onClose={() => setIsTokenModalOpen(false)} tokenList={tokenList} onSelectToken={handleTokenSelect} />
-            <MultiSelectPaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} myPaymentMethods={myPaymentMethods} selectedIds={selectedPaymentMethodIds} onSelectionChange={handlePaymentMethodChange} />
+            <MultiSelectPaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} myPaymentMethods={availablePaymentMethods} selectedIds={selectedPaymentMethodIds} onSelectionChange={handlePaymentMethodChange} selectedCurrency={fiatCurrency} />
             <CurrencySelectorModal
                 isOpen={isCurrencyModalOpen}
                 onClose={() => setIsCurrencyModalOpen(false)}

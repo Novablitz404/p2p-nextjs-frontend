@@ -56,7 +56,7 @@ const TokenSelectorModal = ({ isOpen, onClose, tokenList, onSelectToken }: Token
                                     className="w-full flex items-center p-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
                                 >
                                     <img 
-                                        src={`https://effigy.im/a/${token.address}.svg`} 
+                                        src={token.symbol === 'ETH' ? '/eth.svg' : token.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${token.address}.svg`} 
                                         alt={`${token.symbol} logo`}
                                         className="h-8 w-8 rounded-full mr-4 bg-slate-700"
                                     />

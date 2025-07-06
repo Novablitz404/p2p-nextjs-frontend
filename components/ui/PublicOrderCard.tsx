@@ -65,7 +65,7 @@ const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
                     <div className="flex items-center gap-3 mb-3">
                         <div className="relative">
                             <img 
-                                src={`https://effigy.im/a/${order.tokenAddress}.svg`} 
+                                src={order.tokenSymbol === 'ETH' ? '/eth.svg' : order.tokenSymbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${order.tokenAddress}.svg`} 
                                 alt={`${order.tokenSymbol} logo`}
                                 className="h-8 w-8 rounded-full bg-slate-700 ring-2 ring-slate-600"
                             />

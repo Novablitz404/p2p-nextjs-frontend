@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useWeb3 } from '@/lib/Web3Provider';
@@ -10,7 +10,7 @@ import { Order, MatchedOrder, TradePlan, Token, UserProfile } from '@/types';
 import Image from 'next/image';
 
 // Wagmi and Viem Imports
-import { useWriteContract } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { config } from '@/lib/config';
@@ -20,8 +20,9 @@ import { parseUnits, formatUnits, decodeEventLog, keccak256, toBytes } from 'vie
 import Spinner from '../ui/Spinner';
 import { ChevronDown, Settings } from 'lucide-react';
 import { useNotification } from '@/lib/NotificationProvider';
+import { CURRENCY_PAYMENT_METHODS } from '@/constants';
 
-const ProposalModal = dynamic(() => import('../web3/ProposalModal'));
+const SellerSuggestionModal = dynamic(() => import('../web3/SellerSuggestionModal'));
 const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
 const PaymentMethodSelectorModal = dynamic(() => import('../ui/PaymentMethodSelectorModal'));
 const CurrencySelectorModal = dynamic(() => import('../ui/CurrencySelectorModal'));
@@ -37,7 +38,6 @@ interface BuyerDashboardProps {
     userId: string;
     tokenList: Token[];
     isLoadingTokens: boolean;
-    approvedChannels: string[];
     supportedCurrencies: string[];
 }
 
@@ -51,7 +51,7 @@ const formatFiatValue = (value: string): string => {
     return parts.join('.');
 };
 
-const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, supportedCurrencies }: BuyerDashboardProps) => {
+const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencies }: BuyerDashboardProps) => {
     const { addNotification } = useNotification();
     const router = useRouter();
 
@@ -68,7 +68,8 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
     const [fiatCurrency, setFiatCurrency] = useState('PHP');
     const [isMatching, setIsMatching] = useState(false);
     const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
-    const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+    const [sellerProfiles, setSellerProfiles] = useState<{ [key: string]: UserProfile }>({});
+    const [isSellerSuggestionModalOpen, setIsSellerSuggestionModalOpen] = useState(false);
     const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
     const [maxMarkup, setMaxMarkup] = useState('');
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -82,12 +83,18 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
     const selectedToken = tokenList.find(t => t.address === selectedTokenAddress);
     const countryCode = currencyCountryMap[fiatCurrency] || 'xx';
 
+    // Filter payment methods based on selected currency
+    const availablePaymentMethods = useMemo(() => {
+        const currencyMethods = CURRENCY_PAYMENT_METHODS[fiatCurrency] || [];
+        return currencyMethods;
+    }, [fiatCurrency]);
+
     // All useEffect hooks for UI logic and price fetching are preserved
     useEffect(() => {
-        if (!isLoadingTokens && approvedChannels.length > 0 && !paymentMethod) setPaymentMethod(approvedChannels[0]);
+        if (!isLoadingTokens && availablePaymentMethods.length > 0 && !paymentMethod) setPaymentMethod(availablePaymentMethods[0]);
         if (!isLoadingTokens && supportedCurrencies.length > 0 && !fiatCurrency) setFiatCurrency(supportedCurrencies[0]);
         if (!isLoadingTokens && tokenList.length > 0 && !selectedTokenAddress) setSelectedTokenAddress(tokenList[0].address);
-    }, [isLoadingTokens, approvedChannels, supportedCurrencies, tokenList, paymentMethod, fiatCurrency, selectedTokenAddress]);
+    }, [isLoadingTokens, availablePaymentMethods, supportedCurrencies, tokenList, paymentMethod, fiatCurrency, selectedTokenAddress]);
 
     useEffect(() => {
         if (!selectedToken || !fiatCurrency) return;
@@ -157,47 +164,128 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
             if (allPotentialOrders.length === 0) { addNotification(userId, { type: 'info', message: 'No orders found that meet all criteria.' }); setIsMatching(false); return; }
     
             const sellerIds = [...new Set(allPotentialOrders.map(o => o.seller))];
-            const sellerProfiles: { [key: string]: UserProfile } = {};
+            const profiles: { [key: string]: UserProfile } = {};
             const profilePromises = sellerIds.map(id => getDoc(doc(db, "users", id)));
             const profileSnapshots = await Promise.all(profilePromises);
-            profileSnapshots.forEach(userDoc => { if (userDoc.exists()) { sellerProfiles[userDoc.id] = userDoc.data() as UserProfile; } });
+            profileSnapshots.forEach(userDoc => { if (userDoc.exists()) { profiles[userDoc.id] = userDoc.data() as UserProfile; } });
+            setSellerProfiles(profiles);
     
             const availableOrders = allPotentialOrders.sort((a, b) => {
                 const getWeightedMarkup = (order: Order) => {
-                    const profile = sellerProfiles[order.seller] || { averageRating: 3, ratingCount: 0 };
+                    const profile = profiles[order.seller] || { averageRating: 3, ratingCount: 0 };
                     return order.markupPercentage - (profile.averageRating * Math.log10(profile.ratingCount + 1) * 0.5);
                 };
                 return getWeightedMarkup(a) - getWeightedMarkup(b);
             });
     
-            let amountToFillInWei = buyAmountInWei;
-            const matchedOrders: MatchedOrder[] = [];
-            
-            for (const order of availableOrders) {
-                if (amountToFillInWei <= 0n) break;
+            // Filter out orders that don't have enough remaining amount
+            const ordersWithSufficientAmount = availableOrders.filter(order => {
                 const remainingAmountInWei = parseUnits(order.remainingAmount.toString(), order.tokenDecimals);
-                const amountFromThisOrderInWei = remainingAmountInWei < amountToFillInWei ? remainingAmountInWei : amountToFillInWei;
-                if (amountFromThisOrderInWei <= 0n) continue;
-    
+                // Only include orders that have some remaining amount
+                return remainingAmountInWei > 0n;
+            });
+
+            if (ordersWithSufficientAmount.length === 0) {
+                addNotification(userId, { type: 'info', message: 'No orders found with sufficient remaining amount.' });
+                setIsMatching(false);
+                return;
+            }
+
+            // First, try to find orders that can fulfill the complete request on their own
+            const completeOrders = ordersWithSufficientAmount.filter(order => {
+                const remainingAmountInWei = parseUnits(order.remainingAmount.toString(), order.tokenDecimals);
+                return remainingAmountInWei >= buyAmountInWei;
+            });
+
+            console.log('Matching Debug:', {
+                buyerAmount: formatUnits(buyAmountInWei, selectedToken.decimals),
+                totalOrders: ordersWithSufficientAmount.length,
+                completeOrders: completeOrders.length,
+                completeOrdersDetails: completeOrders.map(o => ({
+                    orderId: o.onChainId,
+                    remaining: o.remainingAmount,
+                    seller: o.seller
+                }))
+            });
+
+            let matchedOrders: MatchedOrder[] = [];
+
+            if (completeOrders.length > 0) {
+                // Use the best complete order (lowest markup, highest rating)
+                const bestCompleteOrder = completeOrders.sort((a, b) => {
+                    const getWeightedMarkup = (order: Order) => {
+                        const profile = profiles[order.seller] || { averageRating: 3, ratingCount: 0 };
+                        return order.markupPercentage - (profile.averageRating * Math.log10(profile.ratingCount + 1) * 0.5);
+                    };
+                    return getWeightedMarkup(a) - getWeightedMarkup(b);
+                })[0];
+
+                console.log('Using Complete Order:', {
+                    orderId: bestCompleteOrder.onChainId,
+                    seller: bestCompleteOrder.seller,
+                    remaining: bestCompleteOrder.remainingAmount,
+                    taking: formatUnits(buyAmountInWei, selectedToken.decimals)
+                });
+
                 matchedOrders.push({
-                    ...order,
-                    firestoreId: order.id,
-                    amountToTakeInWei: amountFromThisOrderInWei, 
-                    amountToTake: parseFloat(formatUnits(amountFromThisOrderInWei, order.tokenDecimals)),
+                    ...bestCompleteOrder,
+                    firestoreId: bestCompleteOrder.id,
+                    amountToTakeInWei: buyAmountInWei, 
+                    amountToTake: Number(buyAmountInWei) / (10 ** selectedToken.decimals),
                     paymentMethod: paymentMethod,
                     price: 0, fiatCost: 0, 
                 });
-                amountToFillInWei -= amountFromThisOrderInWei;
+            } else {
+                // Fallback: Use multiple orders if no single order can fulfill the request
+                // Find optimal combination that minimizes number of sellers
+                let amountToFillInWei = buyAmountInWei;
+                const optimalOrders: MatchedOrder[] = [];
+                
+                // Sort orders by remaining amount (largest first) to prioritize larger orders
+                const sortedOrders = [...ordersWithSufficientAmount].sort((a, b) => {
+                    const aAmount = parseUnits(a.remainingAmount.toString(), a.tokenDecimals);
+                    const bAmount = parseUnits(b.remainingAmount.toString(), b.tokenDecimals);
+                    return Number(bAmount - aAmount);
+                });
+                
+                for (const order of sortedOrders) {
+                    if (amountToFillInWei <= 0n) break;
+                    const remainingAmountInWei = parseUnits(order.remainingAmount.toString(), order.tokenDecimals);
+                    
+                    if (remainingAmountInWei <= 0n) continue;
+                    
+                    const amountFromThisOrderInWei = remainingAmountInWei < amountToFillInWei ? remainingAmountInWei : amountToFillInWei;
+                    if (amountFromThisOrderInWei <= 0n) continue;
+
+                    console.log('Matching Order (Fallback):', {
+                        orderId: order.onChainId,
+                        remaining: formatUnits(remainingAmountInWei, order.tokenDecimals),
+                        taking: formatUnits(amountFromThisOrderInWei, order.tokenDecimals),
+                        stillNeeded: formatUnits(amountToFillInWei, selectedToken.decimals)
+                    });
+        
+                    optimalOrders.push({
+                        ...order,
+                        firestoreId: order.id,
+                        amountToTakeInWei: amountFromThisOrderInWei, 
+                        amountToTake: Number(amountFromThisOrderInWei) / (10 ** order.tokenDecimals),
+                        paymentMethod: paymentMethod,
+                        price: 0, fiatCost: 0, 
+                    });
+                    amountToFillInWei -= amountFromThisOrderInWei;
+                }
+
+                if (amountToFillInWei > 0n) {
+                    const amountFound = formatUnits(buyAmountInWei - amountToFillInWei, selectedToken.decimals);
+                    addNotification(userId, { type: 'error', message: `Insufficient Liquidity: Could only find ${parseFloat(amountFound).toFixed(2)} assets.` });
+                    setIsMatching(false); return;
+                }
+                
+                matchedOrders = optimalOrders;
             }
     
-            if (amountToFillInWei > 0n) {
-                const amountFound = formatUnits(buyAmountInWei - amountToFillInWei, selectedToken.decimals);
-                addNotification(userId, { type: 'error', message: `Insufficient Liquidity: Could only find ${parseFloat(amountFound).toFixed(2)} assets.` });
-                setIsMatching(false); return;
-            }
-    
-            setTradePlan({ matches: matchedOrders, totalCrypto: parseFloat(cryptoAmount), totalFiat: 0, avgPrice: 0, buyerId: userId });
-            setIsProposalModalOpen(true);
+            setTradePlan({ matches: matchedOrders, totalCrypto: Number(cryptoAmount), totalFiat: 0, avgPrice: 0, buyerId: userId });
+            setIsSellerSuggestionModalOpen(true);
     
         } catch (error: any) {
             addNotification(userId, { type: 'error', message: 'Could not search for matches: ' + error.message });
@@ -206,10 +294,26 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
         }
     };
 
+    const handleSellerSelected = async (selectedSeller: any) => {
+        if (!selectedSeller || !selectedSeller.matchedOrders.length) return;
+        
+        setIsSellerSuggestionModalOpen(false);
+        
+        // Create a trade plan with only the selected seller's orders
+        const finalTradePlan: TradePlan = {
+            matches: selectedSeller.matchedOrders,
+            totalCrypto: selectedSeller.totalAmount,
+            totalFiat: selectedSeller.totalFiatCost,
+            avgPrice: selectedSeller.totalFiatCost / selectedSeller.totalAmount,
+            buyerId: userId
+        };
+        
+        await handleConfirmTrade(finalTradePlan);
+    };
+
     const handleConfirmTrade = async (finalTradePlan: TradePlan) => {
         if (!finalTradePlan || !finalTradePlan.matches.length) return;
         
-        setIsProposalModalOpen(false);
         addNotification(userId, { type: 'info', message: 'Please confirm in your wallet to lock the trades.' });
 
         try {
@@ -317,7 +421,7 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
                     <div className="flex relative">
                         <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); }} placeholder="0.00" className="flex-grow w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700"/>
                         <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700 hover:bg-slate-600 rounded-r-lg transition-colors">
-                            {selectedToken && <img src={`https://effigy.im/a/${selectedToken.address}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />}
+                            {selectedToken && <img src={selectedToken.symbol === 'ETH' ? '/eth.svg' : selectedToken.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${selectedToken.address}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />}
                             <span className="font-bold text-white">{selectedToken?.symbol || 'Select'}</span>
                             <ChevronDown className="h-5 w-5 text-gray-400 ml-1" />
                         </button>
@@ -336,18 +440,35 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, approvedChannels, 
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">My payment method</label>
-                    <button type="button" onClick={() => setIsPaymentMethodModalOpen(true)} className="w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 flex justify-between items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled={approvedChannels.length === 0}>
-                        <span>{paymentMethod || (approvedChannels.length > 0 ? 'Select a method...' : 'No payment methods available')}</span>
+                    <button type="button" onClick={() => setIsPaymentMethodModalOpen(true)} className="w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 flex justify-between items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled={availablePaymentMethods.length === 0}>
+                        <span>
+                            {paymentMethod || (
+                                availablePaymentMethods.length > 0 
+                                    ? 'Select a method...' 
+                                    : `No payment methods available for ${fiatCurrency}`
+                            )}
+                        </span>
                         <ChevronDown className="h-5 w-5 text-gray-400" />
                     </button>
+                    {availablePaymentMethods.length === 0 && (
+                        <p className="text-xs text-yellow-400 mt-1">
+                            Available for {fiatCurrency}: {CURRENCY_PAYMENT_METHODS[fiatCurrency]?.join(', ') || 'None'}
+                        </p>
+                    )}
                 </div>
                 <button onClick={handleFindMatch} disabled={isMatching || isLoadingTokens || isPriceLoading} className="w-full font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-emerald-400 text-white text-lg disabled:opacity-50">
                     {isMatching ? <Spinner text="Finding Best Match..."/> : 'Find Best Match'}
                 </button>
             </div>
-            <ProposalModal isOpen={isProposalModalOpen} onClose={() => setIsProposalModalOpen(false)} onConfirm={handleConfirmTrade} tradePlan={tradePlan} />
+            <SellerSuggestionModal 
+                isOpen={isSellerSuggestionModalOpen} 
+                onClose={() => setIsSellerSuggestionModalOpen(false)} 
+                onConfirm={handleSellerSelected} 
+                tradePlan={tradePlan} 
+                sellerProfiles={sellerProfiles} 
+            />
             <TokenSelectorModal isOpen={isTokenModalOpen} onClose={() => setIsTokenModalOpen(false)} tokenList={tokenList} onSelectToken={handleTokenSelect} />
-            <PaymentMethodSelectorModal isOpen={isPaymentMethodModalOpen} onClose={() => setIsPaymentMethodModalOpen(false)} paymentMethods={approvedChannels} onSelectMethod={handlePaymentMethodSelect} />
+            <PaymentMethodSelectorModal isOpen={isPaymentMethodModalOpen} onClose={() => setIsPaymentMethodModalOpen(false)} paymentMethods={availablePaymentMethods} onSelectMethod={handlePaymentMethodSelect} selectedCurrency={fiatCurrency} />
             <CurrencySelectorModal isOpen={isCurrencyModalOpen} onClose={() => setIsCurrencyModalOpen(false)} currencies={supportedCurrencies} onSelectCurrency={handleCurrencySelect} />
             <BuyerRiskWarningModal isOpen={isRiskModalOpen} onClose={() => setIsRiskModalOpen(false)} onConfirm={executeMatchFinding} />
 

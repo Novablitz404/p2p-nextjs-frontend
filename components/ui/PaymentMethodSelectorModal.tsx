@@ -9,9 +9,10 @@ interface PaymentMethodSelectorModalProps {
     onClose: () => void;
     paymentMethods: string[];
     onSelectMethod: (method: string) => void;
+    selectedCurrency?: string;
 }
 
-const PaymentMethodSelectorModal = ({ isOpen, onClose, paymentMethods, onSelectMethod }: PaymentMethodSelectorModalProps) => {
+const PaymentMethodSelectorModal = ({ isOpen, onClose, paymentMethods, onSelectMethod, selectedCurrency }: PaymentMethodSelectorModalProps) => {
     // --- NEW: State for the search term ---
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -53,7 +54,16 @@ const PaymentMethodSelectorModal = ({ isOpen, onClose, paymentMethods, onSelectM
                             </button>
                         ))
                     ) : (
-                        <p className="text-center text-gray-500 py-8">No results found.</p>
+                        <div className="text-center text-gray-500 py-8">
+                            {paymentMethods.length === 0 ? (
+                                <div>
+                                    <p className="mb-2">No payment methods available for {selectedCurrency || 'this currency'}.</p>
+                                    <p className="text-sm">Please add payment methods that support {selectedCurrency || 'this currency'}.</p>
+                                </div>
+                            ) : (
+                                <p>No results found.</p>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

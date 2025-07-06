@@ -33,7 +33,6 @@ const Marketplace = () => {
     const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
     
     const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
-    const [approvedChannels, setApprovedChannels] = useState<string[]>([]);
     const [isLoadingFirestore, setIsLoadingFirestore] = useState(true);
 
     const { data: contractSettings, isLoading: isLoadingContractSettings } = useReadContracts({
@@ -91,12 +90,8 @@ const Marketplace = () => {
             setIsLoadingFirestore(true);
             try {
                 const currenciesDocRef = doc(db, "platformConfig", "supportedCurrencies");
-                const channelsDocRef = doc(db, "platformConfig", "paymentChannels");
-                const [currenciesDocSnap, channelsDocSnap] = await Promise.all([
-                    getDoc(currenciesDocRef), getDoc(channelsDocRef)
-                ]);
+                const currenciesDocSnap = await getDoc(currenciesDocRef);
                 if (currenciesDocSnap.exists()) setSupportedCurrencies(currenciesDocSnap.data().fiat || []);
-                if (channelsDocSnap.exists()) setApprovedChannels(channelsDocSnap.data().approved_channels || []);
             } catch (err) {
                 console.error("Failed to fetch Firestore configuration:", err);
             } finally {
@@ -135,7 +130,6 @@ const Marketplace = () => {
                                     tokenList={approvedTokensList}
                                     isLoadingTokens={isLoadingTokenDetails}
                                     supportedCurrencies={supportedCurrencies}
-                                    approvedChannels={approvedChannels}
                                 /> : 
                                 <SellerDashboard 
                                     userId={address}

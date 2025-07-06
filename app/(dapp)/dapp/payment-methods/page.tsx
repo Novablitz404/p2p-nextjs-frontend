@@ -18,21 +18,8 @@ interface PaymentMethod {
 
 const PaymentMethodsPage = () => {
     const { address } = useWeb3();
-    const [approvedChannels, setApprovedChannels] = useState<string[]>([]);
     const [myPaymentMethods, setMyPaymentMethods] = useState<PaymentMethod[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Effect to fetch the list of platform-approved channels
-    useEffect(() => {
-        const fetchChannels = async () => {
-            const docRef = doc(db, "platformConfig", "paymentChannels");
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                setApprovedChannels(docSnap.data().approved_channels || []);
-            }
-        };
-        fetchChannels();
-    }, []);
 
     // Effect to fetch the user's saved payment methods in real-time
     useEffect(() => {
@@ -79,7 +66,7 @@ const PaymentMethodsPage = () => {
             <h1 className="text-3xl font-bold text-white mb-8">Payment Methods</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 {/* Left Column: Form to add new method */}
-                <AddPaymentMethodForm approvedChannels={approvedChannels} onAdd={handleAddMethod} />
+                <AddPaymentMethodForm onAdd={handleAddMethod} />
                 
                 {/* Right Column: List of saved methods */}
                 <div className="space-y-4">
