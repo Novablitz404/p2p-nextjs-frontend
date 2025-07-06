@@ -50,12 +50,43 @@ export class MessagingService {
       
       // Check if service worker is registered
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-        if (!registration) {
-          console.error('Service worker not registered');
+        try {
+          // Try to register the service worker if it's not already registered
+          let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+          
+          if (!registration) {
+            console.log('Service worker not found, attempting to register...');
+            registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            console.log('Service worker registered successfully');
+          }
+          
+          if (registration) {
+            console.log('Service worker status:', registration.active ? 'Active' : 'Inactive');
+            
+            // Wait for the service worker to be ready
+            if (registration.installing || registration.waiting) {
+              console.log('Waiting for service worker to activate...');
+              await new Promise((resolve) => {
+                const worker = registration.installing || registration.waiting;
+                if (worker) {
+                  worker.addEventListener('statechange', () => {
+                    if (worker.state === 'activated') {
+                      resolve(true);
+                    }
+                  });
+                } else {
+                  resolve(true);
+                }
+              });
+            }
+          } else {
+            console.error('Failed to register service worker');
+            return null;
+          }
+        } catch (error) {
+          console.error('Service worker registration error:', error);
           return null;
         }
-        console.log('Service worker registered:', registration.active ? 'Active' : 'Inactive');
       }
       
       this.token = await getToken(messaging, { vapidKey: VAPID_KEY });
@@ -98,6 +129,11 @@ export class MessagingService {
   }
 
   async removeTokenFromFirestore(userId: string): Promise<void> {
+    if (!userId) {
+      console.log('No userId provided for token removal');
+      return;
+    }
+    
     try {
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
@@ -156,7 +192,9 @@ export class MessagingService {
   }
 
   async cleanup(userId: string): Promise<void> {
-    await this.removeTokenFromFirestore(userId);
+    if (userId) {
+      await this.removeTokenFromFirestore(userId);
+    }
     this.token = null;
   }
 }

@@ -52,9 +52,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                 audio?.play().catch(e => console.error("Error playing sound:", e));
             });
         } else {
-            messagingService.cleanup(address || '').then(() => {
+            if (address) {
+                messagingService.cleanup(address).then(() => {
+                    setPushEnabled(false);
+                });
+            } else {
                 setPushEnabled(false);
-            });
+            }
         }
     }, [address, audio]);
 
