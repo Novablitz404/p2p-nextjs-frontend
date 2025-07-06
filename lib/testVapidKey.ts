@@ -1,16 +1,4 @@
-// Utility to test VAPID key configuration
-import { getMessaging, getToken } from 'firebase/messaging';
-import { initializeApp } from 'firebase/app';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
+// Utility to test VAPID key configuration using pure VAPID (not Firebase FCM)
 export const testVapidKey = async () => {
   try {
     console.log('Testing VAPID key configuration...');
@@ -29,10 +17,6 @@ export const testVapidKey = async () => {
     if (Notification.permission !== 'granted') {
       throw new Error('Notification permission not granted');
     }
-    
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const messaging = getMessaging(app);
     
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     console.log('VAPID Key present:', !!vapidKey);
@@ -72,25 +56,41 @@ export const testVapidKey = async () => {
       controller: !!navigator.serviceWorker.controller
     });
     
-    // Test getting token with timeout
-    const tokenPromise = getToken(messaging, { vapidKey });
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('FCM token request timeout')), 15000);
+    // Convert VAPID public key to Uint8Array
+    const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    };
+    
+    // Test VAPID subscription (not Firebase FCM)
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey)
     });
     
-    const token = await Promise.race([tokenPromise, timeoutPromise]) as string;
-    console.log('Token obtained successfully:', !!token);
-    console.log('Token length:', token?.length);
-    console.log('Token starts with:', token?.substring(0, 20));
+    console.log('VAPID subscription obtained successfully:', !!subscription);
+    console.log('Subscription endpoint:', subscription.endpoint.substring(0, 50) + '...');
+    console.log('Subscription keys:', Object.keys(subscription.toJSON()));
     
     return { 
       success: true, 
-      token: token?.substring(0, 20) + '...',
+      token: subscription.endpoint.substring(0, 20) + '...',
       details: {
         vapidKeyLength: vapidKey.length,
-        tokenLength: token?.length,
+        subscriptionEndpoint: subscription.endpoint.substring(0, 50) + '...',
         serviceWorkerActive: !!registration.active,
-        serviceWorkerController: !!navigator.serviceWorker.controller
+        serviceWorkerController: !!navigator.serviceWorker.controller,
+        subscriptionKeys: Object.keys(subscription.toJSON())
       }
     };
   } catch (error) {

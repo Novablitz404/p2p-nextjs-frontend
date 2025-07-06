@@ -1,15 +1,4 @@
-// Comprehensive Firebase diagnostics
-import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken } from 'firebase/messaging';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+// Comprehensive VAPID diagnostics
 
 export const runFirebaseDiagnostics = async () => {
   const results: any = {
@@ -21,12 +10,12 @@ export const runFirebaseDiagnostics = async () => {
     },
     firebase: {
       config: {
-        apiKey: !!firebaseConfig.apiKey,
-        authDomain: !!firebaseConfig.authDomain,
-        projectId: firebaseConfig.projectId,
-        storageBucket: !!firebaseConfig.storageBucket,
-        messagingSenderId: firebaseConfig.messagingSenderId,
-        appId: !!firebaseConfig.appId,
+        apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: !!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
       },
       vapidKey: {
         present: !!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
@@ -62,38 +51,58 @@ export const runFirebaseDiagnostics = async () => {
       }
     }
 
-    // Test 2: Firebase Initialization
+    // Test 2: VAPID Key Validation
     try {
-      const app = initializeApp(firebaseConfig);
-      const messaging = getMessaging(app);
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey) {
+        throw new Error('VAPID key not found');
+      }
+      if (!vapidKey.startsWith('B')) {
+        throw new Error('VAPID key format incorrect');
+      }
       results.firebase.initialization = 'success';
     } catch (error) {
       results.firebase.initialization = 'failed';
-      results.errors.push(`Firebase Init Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      results.errors.push(`VAPID Key Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // Test 3: FCM Token Generation
+    // Test 3: VAPID Subscription (not FCM)
     try {
-      const app = initializeApp(firebaseConfig);
-      const messaging = getMessaging(app);
+      const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      if (!registration) {
+        throw new Error('Service worker not registered');
+      }
+
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      
       if (!vapidKey) {
         throw new Error('VAPID key not found');
       }
 
-      // Test with timeout
-      const tokenPromise = getToken(messaging, { vapidKey });
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('FCM token request timeout')), 20000);
-      });
+      // Convert VAPID public key to Uint8Array
+      const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+          .replace(/-/g, '+')
+          .replace(/_/g, '/');
 
-      const token = await Promise.race([tokenPromise, timeoutPromise]) as string;
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+      };
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
+      });
       
       results.fcmTest = {
         success: true,
-        tokenLength: token?.length,
-        tokenPreview: token?.substring(0, 20) + '...',
+        tokenLength: subscription.endpoint.length,
+        tokenPreview: subscription.endpoint.substring(0, 20) + '...',
       };
     } catch (error) {
       results.fcmTest = {
@@ -101,7 +110,7 @@ export const runFirebaseDiagnostics = async () => {
         error: error instanceof Error ? error.message : 'Unknown error',
         errorType: error instanceof Error ? error.constructor.name : 'Unknown',
       };
-      results.errors.push(`FCM Token Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      results.errors.push(`VAPID Subscription Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Test 4: Network Connectivity

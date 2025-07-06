@@ -100,9 +100,30 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         throw new Error('Notification permission denied');
       }
 
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('Service Worker registered:', registration);
+      // Register service worker with retry logic
+      let registration: ServiceWorkerRegistration | undefined;
+      let retries = 0;
+      const maxRetries = 3;
+      
+      while (retries < maxRetries) {
+        try {
+          registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          console.log('Service Worker registered:', registration);
+          break;
+        } catch (error) {
+          retries++;
+          console.warn(`Service Worker registration attempt ${retries} failed:`, error);
+          if (retries >= maxRetries) {
+            throw new Error('Failed to register service worker after multiple attempts');
+          }
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+        }
+      }
+
+      if (!registration) {
+        throw new Error('Service Worker registration failed');
+      }
 
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;

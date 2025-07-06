@@ -96,19 +96,24 @@ export const runComprehensivePushTest = async () => {
       return outputArray;
     };
 
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey)
-    });
+    try {
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
+      });
 
-    if (!subscription) {
-      throw new Error('Failed to subscribe to push notifications');
+      if (!subscription) {
+        throw new Error('Failed to subscribe to push notifications');
+      }
+
+      results.details.subscriptionEndpoint = subscription.endpoint.substring(0, 50) + '...';
+      results.details.subscriptionKeys = Object.keys(subscription.toJSON());
+      results.success = true;
+      results.details.step5 = 'Successfully subscribed to push notifications with VAPID!';
+    } catch (subscriptionError) {
+      console.error('VAPID subscription error:', subscriptionError);
+      throw new Error(`VAPID subscription failed: ${subscriptionError instanceof Error ? subscriptionError.message : 'Unknown error'}`);
     }
-
-    results.details.subscriptionEndpoint = subscription.endpoint.substring(0, 50) + '...';
-    results.details.subscriptionKeys = Object.keys(subscription.toJSON());
-    results.success = true;
-    results.details.step5 = 'Successfully subscribed to push notifications with VAPID!';
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

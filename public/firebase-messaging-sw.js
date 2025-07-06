@@ -1,6 +1,21 @@
-// Service Worker for Push Notifications using VAPID
+// Service Worker for VAPID Push Notifications
 // Based on Chrome documentation: https://developer.chrome.com/blog/web-push-interop-wins
 
+console.log('Service Worker loaded successfully');
+
+// Install event - cache resources
+self.addEventListener('install', function(event) {
+  console.log('Service Worker installing...');
+  self.skipWaiting();
+});
+
+// Activate event - take control immediately
+self.addEventListener('activate', function(event) {
+  console.log('Service Worker activating...');
+  event.waitUntil(self.clients.claim());
+});
+
+// Push event handler
 self.addEventListener('push', function(event) {
   console.log('Push event received:', event);
   
@@ -23,8 +38,7 @@ self.addEventListener('push', function(event) {
         image: data.image,
         dir: data.dir || 'auto',
         lang: data.lang || 'en',
-        renotify: data.renotify || false,
-        tag: data.tag || 'default'
+        renotify: data.renotify || false
       };
 
       event.waitUntil(
@@ -60,6 +74,7 @@ self.addEventListener('push', function(event) {
   }
 });
 
+// Notification click handler
 self.addEventListener('notificationclick', function(event) {
   console.log('Notification clicked:', event);
   
@@ -94,11 +109,12 @@ self.addEventListener('notificationclick', function(event) {
   }
 });
 
+// Notification close handler
 self.addEventListener('notificationclose', function(event) {
   console.log('Notification closed:', event);
 });
 
-// Handle background sync
+// Background sync handler
 self.addEventListener('sync', function(event) {
   console.log('Background sync:', event);
   
@@ -110,32 +126,34 @@ self.addEventListener('sync', function(event) {
   }
 });
 
-// Handle push subscription changes
+// Push subscription change handler
 self.addEventListener('pushsubscriptionchange', function(event) {
   console.log('Push subscription changed:', event);
   
   event.waitUntil(
-    // Re-subscribe to push notifications
-    self.registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        'BGtqtKCJdnuLTNrbOifvmqbB3xD27r5a-M9z8DgO-DoKJdBV5D3UvByLIsqUL5_lNVfvYCuGKpLNcv1qFRSB9mo'
-      )
-    })
-    .then(function(subscription) {
-      console.log('Re-subscribed to push notifications:', subscription);
-      // Send the new subscription to your server
-      return fetch('/api/updateSubscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(subscription)
-      });
-    })
-    .catch(function(error) {
-      console.error('Failed to re-subscribe:', error);
-    })
+    // Get the VAPID public key from the environment
+    fetch('/api/getVapidKey')
+      .then(response => response.text())
+      .then(vapidKey => {
+        return self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey)
+        });
+      })
+      .then(function(subscription) {
+        console.log('Re-subscribed to push notifications:', subscription);
+        // Send the new subscription to your server
+        return fetch('/api/updateSubscription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(subscription)
+        });
+      })
+      .catch(function(error) {
+        console.error('Failed to re-subscribe:', error);
+      })
   );
 });
 
@@ -153,6 +171,4 @@ function urlBase64ToUint8Array(base64String) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
-}
-
-console.log('Service Worker loaded successfully'); 
+} 
