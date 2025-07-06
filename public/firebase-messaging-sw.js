@@ -27,13 +27,9 @@ self.addEventListener('activate', (event) => {
 
 const messaging = firebase.messaging();
 
-// Log service worker installation
-self.addEventListener('install', (event) => {
-  console.log('Firebase messaging service worker installed');
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('Firebase messaging service worker activated');
+// Add error handling for messaging initialization
+messaging.onMessage((payload) => {
+  console.log('Received foreground message in service worker:', payload);
 });
 
 // Handle background messages

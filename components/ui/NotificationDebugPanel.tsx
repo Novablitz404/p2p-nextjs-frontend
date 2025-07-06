@@ -97,14 +97,47 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
     }
   };
 
+  const forceServiceWorkerControl = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        // Unregister the current service worker
+        const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+        if (registration) {
+          await registration.unregister();
+          console.log('Service worker unregistered');
+        }
+        
+        // Wait a moment
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Re-register the service worker
+        const newRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/',
+          updateViaCache: 'none'
+        });
+        console.log('Service worker re-registered');
+        
+        // Reload the page to ensure the service worker takes control
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Force service worker control failed:', error);
+    }
+  };
+
   const testVapidKeyConfig = async () => {
     try {
       const result = await testVapidKey();
       console.log('VAPID key test result:', result);
-      alert(`VAPID Key Test: ${result.success ? 'SUCCESS' : 'FAILED'}\n${result.error || result.token || ''}`);
+      
+      if (result.success) {
+        alert(`✅ VAPID Key Test: SUCCESS\n\nToken: ${result.token}\n\nDetails: ${JSON.stringify(result.details, null, 2)}`);
+      } else {
+        alert(`❌ VAPID Key Test: FAILED\n\nError: ${result.error}\n\nDetails: ${JSON.stringify(result.details, null, 2)}`);
+      }
     } catch (error) {
       console.error('VAPID key test failed:', error);
-      alert('VAPID key test failed');
+      alert(`❌ VAPID key test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -192,6 +225,12 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
                 className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
               >
                 Reload Service Worker
+              </button>
+              <button
+                onClick={forceServiceWorkerControl}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              >
+                Force Service Worker Control
               </button>
               <button
                 onClick={testVapidKeyConfig}
