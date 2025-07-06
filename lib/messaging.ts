@@ -48,15 +48,18 @@ export class MessagingService {
     try {
       console.log('Getting FCM token with VAPID key:', VAPID_KEY.substring(0, 10) + '...');
       
-      // Check if service worker is registered
+      // Enhanced service worker registration
       if ('serviceWorker' in navigator) {
         try {
-          // Try to register the service worker if it's not already registered
+          // First, try to get existing registration
           let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
           
           if (!registration) {
             console.log('Service worker not found, attempting to register...');
-            registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+              scope: '/',
+              updateViaCache: 'none'
+            });
             console.log('Service worker registered successfully');
           }
           
@@ -66,18 +69,36 @@ export class MessagingService {
             // Wait for the service worker to be ready
             if (registration.installing || registration.waiting) {
               console.log('Waiting for service worker to activate...');
-              await new Promise((resolve) => {
+              await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                  reject(new Error('Service worker activation timeout'));
+                }, 10000); // 10 second timeout
+                
                 const worker = registration.installing || registration.waiting;
                 if (worker) {
                   worker.addEventListener('statechange', () => {
                     if (worker.state === 'activated') {
+                      clearTimeout(timeout);
                       resolve(true);
+                    } else if (worker.state === 'redundant') {
+                      clearTimeout(timeout);
+                      reject(new Error('Service worker became redundant'));
                     }
                   });
                 } else {
+                  clearTimeout(timeout);
                   resolve(true);
                 }
               });
+            }
+            
+            // Ensure service worker is controlling the page
+            if (registration.active && !navigator.serviceWorker.controller) {
+              console.log('Service worker is active but not controlling the page');
+              // Reload the page to ensure service worker takes control
+              if (isDevelopment) {
+                console.log('In development: Consider reloading the page to ensure service worker control');
+              }
             }
           } else {
             console.error('Failed to register service worker');
@@ -89,7 +110,13 @@ export class MessagingService {
         }
       }
       
-      this.token = await getToken(messaging, { vapidKey: VAPID_KEY });
+      // Try to get FCM token with timeout
+      const tokenPromise = getToken(messaging, { vapidKey: VAPID_KEY });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('FCM token request timeout')), 15000);
+      });
+      
+      this.token = await Promise.race([tokenPromise, timeoutPromise]) as string;
       console.log('FCM token obtained:', this.token ? 'Success' : 'Failed');
       return this.token;
     } catch (error) {
@@ -98,14 +125,23 @@ export class MessagingService {
       // Provide more specific error information
       if (error instanceof Error) {
         if (error.message.includes('push service error')) {
-          console.error('Push service error - this might be due to development environment or network issues');
+          console.error('Push service error - this might be due to:');
+          console.error('1. Network connectivity issues');
+          console.error('2. Firebase project configuration');
+          console.error('3. VAPID key issues');
+          console.error('4. Service worker not properly registered');
+          
           if (isDevelopment) {
             console.log('💡 Tip: Push notifications work better in production. This error is common in development.');
+          } else {
+            console.log('💡 Tip: Check your Firebase project settings and VAPID key configuration');
           }
         } else if (error.message.includes('permission')) {
           console.error('Permission denied for notifications');
         } else if (error.message.includes('service worker')) {
           console.error('Service worker registration failed');
+        } else if (error.message.includes('timeout')) {
+          console.error('FCM token request timed out');
         }
       }
       

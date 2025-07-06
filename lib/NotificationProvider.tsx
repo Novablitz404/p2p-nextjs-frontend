@@ -7,6 +7,7 @@ import { collection, query, onSnapshot, orderBy, limit, doc, updateDoc, writeBat
 import { v4 as uuidv4 } from 'uuid';
 import { AppNotification } from '@/types';
 import { messagingService } from './messaging';
+import NotificationPermissionPrompt from '@/components/ui/NotificationPermissionPrompt';
 
 export interface ModalNotification {
     isOpen: boolean;
@@ -23,6 +24,8 @@ export interface NotificationContextType {
     modalNotification: ModalNotification | null;
     closeModalNotification: () => void;
     pushEnabled: boolean;
+    showPermissionPrompt: () => void;
+    hidePermissionPrompt: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -33,6 +36,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
     const [modalNotification, setModalNotification] = useState<ModalNotification | null>(null);
     const [pushEnabled, setPushEnabled] = useState(false);
+    const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
 
     useEffect(() => {
         setAudio(new Audio('/Ramp Notification.mp3'));
@@ -128,6 +132,24 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setModalNotification(null);
     }, []);
 
+    const handleShowPermissionPrompt = useCallback(() => {
+        setShowPermissionPrompt(true);
+    }, []);
+
+    const handleHidePermissionPrompt = useCallback(() => {
+        setShowPermissionPrompt(false);
+    }, []);
+
+    const handleNotificationEnabled = useCallback(() => {
+        setShowPermissionPrompt(false);
+        // Re-initialize messaging service
+        if (address) {
+            messagingService.initialize(address).then(() => {
+                setPushEnabled(true);
+            });
+        }
+    }, [address]);
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const value = { 
@@ -138,12 +160,20 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         unreadCount, 
         modalNotification, 
         closeModalNotification,
-        pushEnabled 
+        pushEnabled,
+        showPermissionPrompt: handleShowPermissionPrompt,
+        hidePermissionPrompt: handleHidePermissionPrompt
     };
 
     return (
         <NotificationContext.Provider value={value}>
             {children}
+            {showPermissionPrompt && (
+                <NotificationPermissionPrompt
+                    onClose={handleHidePermissionPrompt}
+                    onEnable={handleNotificationEnabled}
+                />
+            )}
         </NotificationContext.Provider>
     );
 };

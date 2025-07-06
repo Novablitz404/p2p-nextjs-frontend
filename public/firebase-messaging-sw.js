@@ -12,6 +12,19 @@ firebase.initializeApp({
   appId: "1:641517280810:web:b8e7091cf8a27902b82d53"
 });
 
+// Log service worker installation
+self.addEventListener('install', (event) => {
+  console.log('Firebase messaging service worker installed');
+  // Skip waiting to activate immediately
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Firebase messaging service worker activated');
+  // Claim all clients immediately
+  event.waitUntil(self.clients.claim());
+});
+
 const messaging = firebase.messaging();
 
 // Log service worker installation
