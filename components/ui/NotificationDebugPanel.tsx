@@ -601,6 +601,21 @@ const NotificationDebugPanel = ({ isOpen, onClose }: NotificationDebugPanelProps
                 Test VAPID Key
               </button>
               <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/testVapidKey');
+                    const data = await response.json();
+                    console.log('VAPID key test result:', data);
+                    alert(`VAPID Key Test:\n\nSuccess: ${data.success}\n${data.success ? `Length: ${data.vapidKey.length}\nStarts with B: ${data.vapidKey.startsWithB}\nConverted Length: ${data.vapidKey.convertedLength}` : `Error: ${data.error}`}`);
+                  } catch (error) {
+                    alert(`VAPID key test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                  }
+                }}
+                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
+              >
+                Test VAPID Format
+              </button>
+              <button
                 onClick={runComprehensiveDiagnostics}
                 className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
               >

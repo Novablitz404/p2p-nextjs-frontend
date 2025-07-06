@@ -3,7 +3,7 @@
 
 console.log('Service Worker loaded successfully');
 
-// Install event - cache resources
+// Install event - take control immediately
 self.addEventListener('install', function(event) {
   console.log('Service Worker installing...');
   self.skipWaiting();
@@ -19,12 +19,23 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('push', function(event) {
   console.log('Push event received:', event);
   
+  let options = {
+    body: 'You have a new notification',
+    icon: '/RampzLogo.png',
+    badge: '/RampzLogo.png',
+    tag: 'default',
+    requireInteraction: false,
+    silent: false,
+    vibrate: [200, 100, 200],
+    timestamp: Date.now()
+  };
+  
   if (event.data) {
     try {
       const data = event.data.json();
       console.log('Push data:', data);
       
-      const options = {
+      options = {
         body: data.body || 'You have a new notification',
         icon: data.icon || '/RampzLogo.png',
         badge: data.badge || '/RampzLogo.png',
@@ -40,38 +51,14 @@ self.addEventListener('push', function(event) {
         lang: data.lang || 'en',
         renotify: data.renotify || false
       };
-
-      event.waitUntil(
-        self.registration.showNotification(data.title || 'Rampz Notification', options)
-      );
     } catch (error) {
       console.error('Error parsing push data:', error);
-      
-      // Fallback notification
-      const options = {
-        body: 'You have a new notification',
-        icon: '/RampzLogo.png',
-        badge: '/RampzLogo.png',
-        tag: 'default'
-      };
-
-      event.waitUntil(
-        self.registration.showNotification('Rampz Notification', options)
-      );
     }
-  } else {
-    // No data provided, show default notification
-    const options = {
-      body: 'You have a new notification',
-      icon: '/RampzLogo.png',
-      badge: '/RampzLogo.png',
-      tag: 'default'
-    };
-
-    event.waitUntil(
-      self.registration.showNotification('Rampz Notification', options)
-    );
   }
+
+  event.waitUntil(
+    self.registration.showNotification(data?.title || 'Rampz Notification', options)
+  );
 });
 
 // Notification click handler
@@ -133,8 +120,29 @@ self.addEventListener('pushsubscriptionchange', function(event) {
   event.waitUntil(
     // Get the VAPID public key from the environment
     fetch('/api/getVapidKey')
-      .then(response => response.text())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to get VAPID key');
+        }
+        return response.text();
+      })
       .then(vapidKey => {
+        // Convert VAPID key to Uint8Array
+        const urlBase64ToUint8Array = (base64String) => {
+          const padding = '='.repeat((4 - base64String.length % 4) % 4);
+          const base64 = (base64String + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+
+          const rawData = window.atob(base64);
+          const outputArray = new Uint8Array(rawData.length);
+
+          for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+          }
+          return outputArray;
+        };
+
         return self.registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey)
@@ -155,20 +163,4 @@ self.addEventListener('pushsubscriptionchange', function(event) {
         console.error('Failed to re-subscribe:', error);
       })
   );
-});
-
-// Utility function to convert VAPID public key
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-} 
+}); 

@@ -66,22 +66,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     checkSupport();
   }, []);
 
-  // Convert VAPID public key to Uint8Array
-  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  };
-
   const subscribe = async () => {
     try {
       if (!isSupported) {
@@ -90,6 +74,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (!vapidPublicKey) {
         throw new Error('VAPID public key not configured');
+      }
+
+      // Validate VAPID key format
+      if (!vapidPublicKey.startsWith('B')) {
+        throw new Error('VAPID key should start with "B"');
+      }
+
+      if (vapidPublicKey.length < 80) {
+        throw new Error('VAPID key seems too short');
       }
 
       // Request permission
@@ -128,10 +121,48 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
 
+      // Ensure service worker is controlling the page
+      if (!navigator.serviceWorker.controller) {
+        console.log('Service worker not controlling, reloading page...');
+        window.location.reload();
+        return;
+      }
+
+      // Convert VAPID public key to Uint8Array with proper error handling
+      const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+        try {
+          const padding = '='.repeat((4 - base64String.length % 4) % 4);
+          const base64 = (base64String + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+
+          const rawData = window.atob(base64);
+          const outputArray = new Uint8Array(rawData.length);
+
+          for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+          }
+          return outputArray;
+        } catch (error) {
+          throw new Error(`Failed to convert VAPID key: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      };
+
+      // Check if already subscribed
+      const existingSubscription = await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        console.log('Already subscribed to push notifications');
+        setIsSubscribed(true);
+        return;
+      }
+
       // Subscribe to push notifications with VAPID
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+      console.log('VAPID key converted successfully, length:', applicationServerKey.length);
+
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+        applicationServerKey: applicationServerKey
       });
 
       console.log('Push subscription:', subscription);
