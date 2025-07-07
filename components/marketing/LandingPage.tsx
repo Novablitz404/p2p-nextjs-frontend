@@ -80,9 +80,9 @@ const LandingPage = ({ liveOrders }: LandingPageProps) => {
             <div className="relative z-10 w-full flex flex-col md:flex-row items-center justify-between">
               {/* Left: Headline and CTA */}
               <div className="flex-1 flex flex-col items-start justify-center max-w-full md:max-w-2xl">
-                <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-tight mb-4 sm:mb-6">
+                <h1 className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-tight mb-4 sm:mb-6 text-center md:text-left w-full">
                   The Future of
-                  <span className="relative inline-block ml-2 sm:ml-4 align-middle min-w-[9ch] xs:min-w-[10ch]" style={{ minWidth: '9ch' }}>
+                  <span className="relative inline-block ml-2 sm:ml-4 align-middle min-w-[9ch] xs:min-w-[10ch]">
                     {phrases.map((phrase, idx) => (
                       <span
                         key={phrase}
@@ -94,7 +94,7 @@ const LandingPage = ({ liveOrders }: LandingPageProps) => {
                     ))}
                   </span>
                 </h1>
-                <p className="mt-2 sm:mt-4 max-w-full sm:max-w-3xl text-base xs:text-lg sm:text-2xl font-semibold text-white leading-relaxed mb-6 sm:mb-8">
+                <p className="mt-2 sm:mt-4 max-w-full sm:max-w-3xl text-base xs:text-lg sm:text-2xl font-semibold text-white leading-relaxed mb-6 sm:mb-8 text-center md:text-left w-full">
                   <span className="text-emerald-400">Global Crypto</span>, <span className="text-blue-400">Local Access</span>. <span className="text-gray-300">On-chain</span> <span className="text-emerald-400">securely</span> <span className="text-gray-300">in seconds.</span>
                 </p>
               </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dbAdmin } from '@/lib/firebase-admin';
+import { fetchTokenPrice } from '@/lib/config';
 
 export async function GET() {
   try {
@@ -19,19 +20,13 @@ export async function GET() {
       const orderData = doc.data();
       if (orderData.remainingAmount && orderData.markupPercentage && orderData.tokenSymbol && orderData.fiatCurrency) {
         try {
-          // Fetch live market price for this token
-          const priceResponse = await fetch(`/api/getTokenPrice?symbol=${orderData.tokenSymbol}&currency=${orderData.fiatCurrency}`);
-          if (priceResponse.ok) {
-            const priceData = await priceResponse.json();
-            const marketPrice = priceData.price;
-            
-            // Calculate final price with markup
-            const finalPrice = marketPrice * (1 + orderData.markupPercentage / 100);
-            
-            // Calculate the total value of this order's remaining amount
-            const orderValue = orderData.remainingAmount * finalPrice;
-            totalAssetsValue += orderValue;
-          }
+          // Fetch live market price for this token using shared function
+          const marketPrice = await fetchTokenPrice(orderData.tokenSymbol, orderData.fiatCurrency);
+          // Calculate final price with markup
+          const finalPrice = marketPrice * (1 + orderData.markupPercentage / 100);
+          // Calculate the total value of this order's remaining amount
+          const orderValue = orderData.remainingAmount * finalPrice;
+          totalAssetsValue += orderValue;
         } catch (error) {
           console.error(`Failed to fetch price for ${orderData.tokenSymbol}:`, error);
           // Skip this order if we can't get the price
