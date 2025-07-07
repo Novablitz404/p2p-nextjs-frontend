@@ -23,6 +23,7 @@ const currencySymbols: { [key: string]: string } = {
     'PHP': '₱',
     'USD': '$',
     'EUR': '€',
+    'IDR': 'Rp',
 };
 
 

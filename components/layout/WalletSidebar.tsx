@@ -8,6 +8,7 @@ import { formatUnits, zeroAddress } from 'viem';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { erc20Abi } from 'viem';
 import Spinner from '../ui/Spinner';
+import TokenLogo from '../ui/TokenLogo';
 
 interface WalletSidebarProps {
     isOpen: boolean;
@@ -38,6 +39,7 @@ const SUPPORTED_CURRENCIES = [
     { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
     { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
     { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+    { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
 ];
 
 const WalletSidebar = ({ isOpen, onClose }: WalletSidebarProps) => {
@@ -307,7 +309,7 @@ const WalletSidebar = ({ isOpen, onClose }: WalletSidebarProps) => {
                                     {balances.map(token => (
                                         <div key={token.address} className="flex items-center justify-between p-2 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
                                             <div className="flex items-center gap-2">
-                                                <img src={token.symbol === 'ETH' ? '/eth.svg' : token.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${token.address}.svg`} alt={token.symbol} className="h-5 w-5 sm:h-6 sm:w-6 rounded-full" />
+                                                <TokenLogo symbol={token.symbol} address={token.address} className="h-5 w-5 sm:h-6 sm:w-6 rounded-full" size={24} />
                                                 <span className="text-xs sm:text-sm font-medium text-gray-300">{token.symbol}</span>
                                             </div>
                                             <button 
@@ -377,7 +379,7 @@ const WalletSidebar = ({ isOpen, onClose }: WalletSidebarProps) => {
                                         <div key={token.address} className="group flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-xl border border-slate-600/30 hover:border-emerald-500/30 hover:bg-slate-800/70 transition-all duration-300 backdrop-blur-sm">
                                             <div className="flex items-center gap-2 sm:gap-3">
                                                 <div className="relative">
-                                                    <img src={token.symbol === 'ETH' ? '/eth.svg' : token.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${token.address}.svg`} alt={token.symbol} className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-slate-700 ring-2 ring-slate-600 group-hover:ring-emerald-500/50 transition-all" />
+                                                    <TokenLogo symbol={token.symbol} address={token.address} className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-slate-700 ring-2 ring-slate-600 group-hover:ring-emerald-500/50 transition-all" size={40} />
                                                     {token.balanceNumber > 0 && (
                                                         <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-slate-800"></div>
                                                     )}

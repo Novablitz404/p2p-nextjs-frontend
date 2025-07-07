@@ -71,5 +71,15 @@ export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
         'Cash Pickup',
         'Western Union',
         'MoneyGram'
-    ]
+    ],
+    'IDR': [
+        'Bank Transfer',
+        'OVO',
+        'DANA',
+        'GoPay',
+        'ShopeePay',
+        'Cash Pickup',
+        'Western Union',
+        'MoneyGram'
+    ],
 };

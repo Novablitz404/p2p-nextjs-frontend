@@ -7,6 +7,7 @@ import { Token } from '@/types';
 import { ChevronDown, X } from 'lucide-react';
 import Image from 'next/image';
 import { CURRENCY_PAYMENT_METHODS } from '@/constants';
+import TokenLogo from '../ui/TokenLogo';
 
 const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
 const MultiSelectPaymentModal = dynamic(() => import('../ui/MultiSelectPaymentModal'));
@@ -38,6 +39,7 @@ const currencyCountryMap: { [key: string]: string } = {
     USD: 'us',
     EUR: 'eu',
     THB: 'th',
+    IDR: 'id',
 };
 
 const formatFiatValue = (value: string): string => {
@@ -164,7 +166,7 @@ const SellerOrderForm = ({
                         <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
-                                    <img src={selectedToken && selectedToken.symbol === 'ETH' ? '/eth.svg' : selectedToken && selectedToken.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${selectedTokenAddress}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />
+                                    <TokenLogo symbol={selectedToken?.symbol || ''} address={selectedTokenAddress} className="h-6 w-6 rounded-full mr-2" size={24} />
                                     <span className="font-bold text-white group-hover:text-red-400 transition-colors">{selectedToken?.symbol}</span>
                                     <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-red-400 transition-colors" />
                                 </>

@@ -5,6 +5,7 @@ import { ArrowRight, Zap, TrendingUp, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
 import Spinner from './Spinner';
+import TokenLogo from './TokenLogo';
 
 interface PublicOrderCardProps {
     order: Order;
@@ -15,6 +16,7 @@ const currencySymbols: { [key: string]: string } = {
     USD: '$',
     EUR: '€',
     THB: '฿',
+    IDR: 'Rp',
 };
 
 const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
@@ -64,11 +66,7 @@ const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="relative">
-                            <img 
-                                src={order.tokenSymbol === 'ETH' ? '/eth.svg' : order.tokenSymbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${order.tokenAddress}.svg`} 
-                                alt={`${order.tokenSymbol} logo`}
-                                className="h-8 w-8 rounded-full bg-slate-700 ring-2 ring-slate-600"
-                            />
+                            <TokenLogo symbol={order.tokenSymbol} address={order.tokenAddress} className="h-8 w-8 rounded-full bg-slate-700 ring-2 ring-slate-600" size={32} />
                             <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-800"></div>
                         </div>
                         <span className="text-sm text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">

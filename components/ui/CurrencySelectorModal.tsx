@@ -18,6 +18,7 @@ const currencyCountryMap: { [key: string]: string } = {
     USD: 'us',
     EUR: 'eu',
     THB: 'th',
+    IDR: 'id',
 };
 
 const CurrencySelectorModal = ({ isOpen, onClose, currencies, onSelectCurrency }: CurrencySelectorModalProps) => {

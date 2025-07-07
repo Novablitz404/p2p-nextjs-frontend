@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Token } from '@/types';
 import Modal from './Modal';
 import { Search } from 'lucide-react';
+import TokenLogo from './TokenLogo';
 
 interface TokenSelectorModalProps {
     isOpen: boolean;
@@ -55,10 +56,11 @@ const TokenSelectorModal = ({ isOpen, onClose, tokenList, onSelectToken }: Token
                                     onClick={() => handleSelect(token.address)}
                                     className="w-full flex items-center p-2 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
                                 >
-                                    <img 
-                                        src={token.symbol === 'ETH' ? '/eth.svg' : token.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${token.address}.svg`} 
-                                        alt={`${token.symbol} logo`}
-                                        className="h-8 w-8 rounded-full mr-4 bg-slate-700"
+                                    <TokenLogo 
+                                      symbol={token.symbol} 
+                                      address={token.address} 
+                                      className="h-8 w-8 rounded-full mr-4 bg-slate-700" 
+                                      size={32}
                                     />
                                     <div className="flex flex-col">
                                         <span className="font-bold text-white">{token.symbol}</span>

@@ -9,6 +9,7 @@ import { collection, query, where, getDocs, doc, writeBatch, serverTimestamp, ge
 import { Order, MatchedOrder, TradePlan, Token, UserProfile } from '@/types';
 import Image from 'next/image';
 import clsx from 'clsx';
+import TokenLogo from '../ui/TokenLogo';
 
 // Wagmi and Viem Imports
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
@@ -42,7 +43,7 @@ interface BuyerDashboardProps {
     supportedCurrencies: string[];
 }
 
-const currencyCountryMap: { [key: string]: string } = { PHP: 'ph', USD: 'us', EUR: 'eu', THB: 'th' };
+const currencyCountryMap: { [key: string]: string } = { PHP: 'ph', USD: 'us', EUR: 'eu', THB: 'th', IDR: 'id' };
 
 const formatFiatValue = (value: string): string => {
     if (!value) return '';
@@ -477,7 +478,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                         >
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
-                                    <img src={selectedToken && selectedToken.symbol === 'ETH' ? '/eth.svg' : selectedToken && selectedToken.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${selectedTokenAddress}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />
+                                    <TokenLogo symbol={selectedToken?.symbol || ''} address={selectedTokenAddress} className="h-6 w-6 rounded-full mr-2" size={24} />
                                     <span className="font-bold text-white group-hover:text-emerald-400 transition-colors">{selectedToken?.symbol}</span>
                                     <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-emerald-400 transition-colors" />
                                 </>

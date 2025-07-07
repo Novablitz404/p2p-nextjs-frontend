@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Spinner from '../ui/Spinner';
 import { Order } from '@/types';
 import { Trash2 } from 'lucide-react';
+import TokenLogo from '../ui/TokenLogo';
 
 interface OrderCardProps {
     order: Order;
@@ -16,6 +17,7 @@ const currencySymbols: { [key: string]: string } = {
     PHP: '₱',
     USD: '$',
     EUR: '€',
+    IDR: 'Rp',
 };
 
 const OrderCard = ({ order, onFund, onCancelOrder, isProcessing }: OrderCardProps) => {
@@ -79,11 +81,7 @@ const OrderCard = ({ order, onFund, onCancelOrder, isProcessing }: OrderCardProp
             <div className="flex justify-between items-start mb-2">
                 <div className="flex flex-col">
                     <span className="font-bold text-lg text-white block mb-1 flex items-center gap-2">
-                        {order.tokenSymbol === 'ETH' ? (
-                            <img src="/eth.svg" alt="ETH" className="h-6 w-6 inline-block align-middle mr-1" />
-                        ) : (
-                            <span className="h-6 w-6 inline-block align-middle mr-1 bg-slate-700 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase">{order.tokenSymbol[0]}</span>
-                        )}
+                        <TokenLogo symbol={order.tokenSymbol} address={order.tokenAddress} className="h-6 w-6 inline-block align-middle mr-1" size={24} />
                         {order.totalAmount.toLocaleString()} {order.tokenSymbol}
                     </span>
                     <div className="text-sm">
