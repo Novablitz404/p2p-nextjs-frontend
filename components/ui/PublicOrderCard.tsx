@@ -60,7 +60,7 @@ const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
     return (
         <div className="group bg-gradient-to-br from-slate-800/50 to-slate-800/30 p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between space-y-6 transition-all duration-300 hover:border-emerald-500/50 hover:bg-slate-800/80 hover:shadow-xl hover:shadow-emerald-500/10 hover:scale-105 backdrop-blur-sm">
             {/* Header */}
-            <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="relative">
@@ -73,7 +73,7 @@ const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
                         </div>
                         <span className="text-sm text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                             {order.tokenSymbol}
-                        </span>
+                       </span>
                     </div>
                     
                     <h3 className="font-bold text-xl text-white mb-2">
@@ -87,23 +87,23 @@ const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
                                 <span className="ml-2">Loading price...</span>
                             </div>
                         ) : (
-                            totalLiveFiatValue !== null ? (
-                                <div className="flex items-center">
-                                    <span className="relative flex h-2 w-2 mr-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                    </span>
+                               totalLiveFiatValue !== null ? (
+                                    <div className="flex items-center">
+                                        <span className="relative flex h-2 w-2 mr-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        </span>
                                     <span className="font-semibold text-white text-lg">
-                                        {currencySymbol}{totalLiveFiatValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                    </span>
+                                            {currencySymbol}{totalLiveFiatValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        </span>
                                     <span className="text-gray-500 ml-2">total value</span>
-                                </div>
-                            ) : (
+                                    </div>
+                               ) : (
                                 <span className="text-red-400 text-xs">Price unavailable</span>
-                            )
-                        )}
-                    </div>
-                </div>
+                               )
+                           )}
+                       </div>
+               </div>
             </div>
             
             {/* Stats */}
@@ -135,7 +135,7 @@ const PublicOrderCard = ({ order }: PublicOrderCardProps) => {
                 <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Link>
         </div>
-    );
+   );
 };
 
 export default PublicOrderCard;

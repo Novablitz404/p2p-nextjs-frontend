@@ -9,7 +9,6 @@ interface BuyerSettingsModalProps {
     onClose: () => void;
     onSave: (markup: string) => void;
     initialMarkup: string;
-    // Accept the button's ref as a prop
     toggleButtonRef: React.RefObject<HTMLButtonElement>;
 }
 
@@ -33,7 +32,6 @@ const BuyerSettingsModal = ({
                 onClose();
             }
         };
-
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
@@ -56,25 +54,25 @@ const BuyerSettingsModal = ({
 
     if (!isOpen) return null;
 
+    // Render the modal as a normal child, positioned absolutely below the gear icon, right-aligned
     return (
         <div
             ref={popoverRef}
-            className="absolute top-full right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-2xl shadow-xl z-10 p-4 animate-fade-in-up"
+            className="absolute right-0 top-full mt-2 w-80 bg-slate-800/90 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl z-[60] p-5 animate-fade-in-up"
         >
-            <div className="flex justify-between items-center mb-4">
-                 <h3 className="text-base font-semibold text-white">Buyer Settings</h3>
+            <div className="flex justify-between items-center mb-5">
+                 <h3 className="text-base font-bold text-white">Buyer Settings</h3>
             </div>
-           
-            <div className="space-y-4">
+            <div className="space-y-5">
                 {/* Max Markup Setting */}
                 <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center gap-1.5 text-gray-300">
+                    <div className="flex items-center gap-2 text-gray-300">
                         <span>Max. Seller Markup</span>
                         <Tooltip text="Only find sellers with a markup at or below this rate. Leave blank to see all offers.">
-                            <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                            <Info className="h-4 w-4 text-gray-500 cursor-help hover:text-gray-400 transition-colors" />
                         </Tooltip>
                     </div>
-                    <div className="relative bg-slate-700/50 rounded-full p-1">
+                    <div className="relative bg-slate-700/60 rounded-full p-1.5 border border-slate-600/40">
                         <input
                            type="number"
                            value={markup}
@@ -86,10 +84,12 @@ const BuyerSettingsModal = ({
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">%</span>
                    </div>
                 </div>
-                
                 {/* Action Button */}
-                <div className="flex justify-end pt-2">
-                     <button onClick={handleSave} className="w-full py-2 px-4 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600">
+                <div className="flex justify-end pt-3">
+                     <button 
+                         onClick={handleSave} 
+                         className="w-full py-2.5 px-4 text-sm font-bold rounded-xl bg-emerald-500 hover:bg-emerald-600 transition-all duration-200 shadow-lg hover:shadow-emerald-500/25"
+                     >
                         Save
                     </button>
                 </div>

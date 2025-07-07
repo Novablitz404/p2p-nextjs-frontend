@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { Order } from '@/types';
 import dynamic from 'next/dynamic';
+import { Fragment } from 'react';
 
 // Wagmi and Viem Imports
 import { useWriteContract } from 'wagmi';
@@ -25,6 +26,36 @@ const P2P_CONTRACT_CONFIG = {
     address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
     abi: P2PEscrowABI,
 };
+
+// Skeleton loader for order cards
+const OrderCardSkeleton = () => (
+    <div className="relative bg-slate-800/60 backdrop-blur-xl rounded-2xl border border-slate-700/40 shadow-xl p-6 flex flex-col gap-4 animate-pulse">
+        <div className="flex justify-between items-start mb-2">
+            <div>
+                <div className="h-5 w-32 bg-slate-700/60 rounded mb-2" />
+                <div className="h-4 w-20 bg-slate-700/50 rounded" />
+            </div>
+            <div className="h-6 w-20 bg-slate-700/60 rounded-full" />
+        </div>
+        <div className="flex gap-2 mb-1">
+            <div className="h-5 w-16 bg-slate-700/50 rounded-full" />
+            <div className="h-5 w-12 bg-slate-700/50 rounded-full" />
+        </div>
+        <div className="mb-2">
+            <div className="w-full bg-slate-700/40 rounded-full h-2 overflow-hidden">
+                <div className="bg-slate-700/80 h-2 rounded-full w-1/2" />
+            </div>
+            <div className="flex justify-between items-center text-xs text-gray-400 mt-1">
+                <div className="h-3 w-16 bg-slate-700/40 rounded" />
+                <div className="h-3 w-16 bg-slate-700/40 rounded" />
+            </div>
+        </div>
+        <div className="pt-3 border-t border-slate-700/30 min-h-[40px] flex items-center justify-center gap-2">
+            <div className="h-10 w-24 bg-slate-700/40 rounded-xl" />
+            <div className="h-10 w-24 bg-slate-700/40 rounded-xl" />
+        </div>
+    </div>
+);
 
 const OrdersPage = () => {
     // State Management
@@ -140,14 +171,19 @@ const OrdersPage = () => {
         return <div className="max-w-4xl mx-auto"><Spinner text="Loading your orders..." /></div>;
     }
 
+    if (!address) {
+        return <ConnectWalletMessage />;
+    }
+
     return (
         <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-8">My Sell Orders</h1>
-            
-            {!address ? (
-                <ConnectWalletMessage />
-            ) : isLoading ? (
-                <Spinner text="Loading your orders..." />
+            {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: ORDERS_PER_PAGE }).map((_, i) => (
+                        <OrderCardSkeleton key={i} />
+                    ))}
+                </div>
             ) : myOrders.length === 0 ? (
                 <p className="text-gray-500 text-center py-10 border-2 border-dashed border-slate-700 rounded-lg">
                     You have not created any sell orders.
@@ -165,7 +201,6 @@ const OrdersPage = () => {
                             />
                         ))}
                     </div>
-
                     {totalPages > 1 && (
                         <div className="flex justify-center items-center gap-4 mt-8">
                             <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">

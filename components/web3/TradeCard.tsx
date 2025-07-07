@@ -56,18 +56,27 @@ const TradeCard = ({ trade, onRelease, onDispute, disputeTimeout, isProcessing, 
     const fiatAmount = trade.amount * trade.price;
 
     return (
-        <div className={`bg-slate-800 p-4 rounded-lg border ${trade.status === 'FIAT_PAID' ? 'border-emerald-500/50' : 'border-blue-500/50'} space-y-3`}>
-            <div className="flex justify-between items-start">
-                <h3 className="font-semibold text-white">
-                    Trade #{trackingCode}: {trade.amount} {trade.tokenSymbol}
-                </h3>
-                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${currentStatus.pill}`}>
-                    {currentStatus.text}
-                </span>
+        <div className={[
+            "relative bg-slate-800/70 backdrop-blur-xl rounded-2xl border border-slate-700/60 shadow-xl p-6 flex flex-col gap-4 transition-all duration-200",
+            trade.status === 'FIAT_PAID' ? 'hover:border-emerald-500/30' : 'hover:border-blue-500/30'
+        ].join(' ')}>
+            <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-3">
+                    {/* Buyer avatar (blockie or initials) */}
+                    <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-emerald-300 font-bold text-lg shadow-inner">
+                        {trade.buyer ? trade.buyer.slice(2, 4).toUpperCase() : '?'}
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-white text-base mb-0.5">
+                            Trade #{trackingCode}: {trade.amount} {trade.tokenSymbol}
+                        </h3>
+                        <p className="text-xs text-gray-400">Buyer: <span className="font-mono">{trade.buyer.substring(0, 10)}...{trade.buyer.substring(trade.buyer.length - 4)}</span></p>
+                    </div>
+                </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${currentStatus.pill} shadow-sm uppercase tracking-wide`}>{currentStatus.text}</span>
             </div>
-            <p className="text-sm text-gray-400">Buyer: <span className="font-mono">{trade.buyer.substring(0, 10)}...{trade.buyer.substring(trade.buyer.length - 4)}</span></p>
 
-            <div className="text-sm border-t border-slate-700/50 pt-3 mt-3">
+            <div className="text-sm border-t border-slate-700/40 pt-3 mt-2">
                 <div className="flex justify-between">
                     <span className="text-gray-400">Price:</span>
                     <span className="font-semibold text-white">₱{trade.price.toFixed(2)} / {trade.tokenSymbol}</span>
@@ -78,31 +87,29 @@ const TradeCard = ({ trade, onRelease, onDispute, disputeTimeout, isProcessing, 
                 </div>
             </div>
 
-            <div className="!mt-4 pt-3 border-t border-slate-700/50 flex flex-col sm:flex-row gap-2">
+            <div className="!mt-4 pt-3 border-t border-slate-700/40 flex flex-col sm:flex-row gap-2 animate-fade-in">
                 {trade.proofOfPaymentURL && onViewProof && (
                     <button
                         onClick={() => onViewProof(trade.proofOfPaymentURL!)}
-                        className="w-full text-sm font-semibold py-2 rounded-lg bg-slate-600 text-white hover:bg-slate-500 disabled:opacity-50 flex justify-center items-center"
+                        className="w-full text-sm font-semibold py-2 rounded-xl bg-slate-700/80 text-white hover:bg-emerald-500/20 hover:text-emerald-300 active:scale-95 transition-all duration-150 shadow disabled:opacity-50 flex justify-center items-center"
                     >
                         View Screenshot
                     </button>
                 )}
-                
                 {trade.status === 'FIAT_PAID' && (
                     <button
                         onClick={() => onRelease(trade)}
                         disabled={isProcessing}
-                        className="w-full text-sm font-semibold py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 flex justify-center items-center"
+                        className="w-full text-sm font-bold py-2 rounded-xl bg-emerald-500/90 text-white hover:bg-emerald-400/90 active:scale-95 transition-all duration-150 shadow-lg disabled:opacity-50 flex justify-center items-center"
                     >
                         {isProcessing ? <Spinner /> : "Release Funds to Buyer"}
                     </button>
                 )}
-
                 {trade.status === 'LOCKED' && (
-                     <button
+                    <button
                         onClick={() => onDispute(trade)}
                         disabled={!isDisputable || isProcessing}
-                        className="w-full text-xs font-semibold py-2 px-1 rounded-lg bg-red-600/80 text-red-100 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                        className="w-full text-xs font-bold py-2 px-1 rounded-xl bg-red-600/80 text-red-100 hover:bg-red-500 active:scale-95 transition-all duration-150 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
                     >
                         {isProcessing ? <Spinner /> : (isDisputable ? 'Dispute (Buyer Not Paid)' : `Dispute in: ${countdown}`)}
                     </button>

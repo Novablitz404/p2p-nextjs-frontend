@@ -2,97 +2,137 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
-import { useNotification } from '@/lib/NotificationProvider';
-import Spinner from '../ui/Spinner';
-
-// Wagmi and Viem Imports
-import { useWriteContract, useReadContracts } from 'wagmi';
+import { useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
-import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { config } from '@/lib/config';
+import { P2PEscrowABI } from '@/abis/P2PEscrow';
+import { useToastHelpers } from '@/components/ui/ToastProvider';
+
+interface TimeoutManagementProps {
+    currentBuyerTimeout: number;
+    currentSellerTimeout: number;
+    onUpdate: () => void;
+}
 
 const P2P_CONTRACT_CONFIG = {
     address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
     abi: P2PEscrowABI,
 };
 
-const TimeoutManagement = () => {
+const TimeoutManagement = ({ currentBuyerTimeout, currentSellerTimeout, onUpdate }: TimeoutManagementProps) => {
     const { address } = useWeb3();
-    const { addNotification } = useNotification();
-    const [buyerTimeout, setBuyerTimeout] = useState('');
-    const [sellerTimeout, setSellerTimeout] = useState('');
+    const { success, error: showError } = useToastHelpers();
+    const [buyerTimeout, setBuyerTimeout] = useState(currentBuyerTimeout.toString());
+    const [sellerTimeout, setSellerTimeout] = useState(currentSellerTimeout.toString());
+    const [isUpdatingBuyer, setIsUpdatingBuyer] = useState(false);
+    const [isUpdatingSeller, setIsUpdatingSeller] = useState(false);
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
 
-    // Fetch current values in one batch
-    const { data: timeoutData, refetch } = useReadContracts({
-        contracts: [
-            { ...P2P_CONTRACT_CONFIG, functionName: 'buyerPaymentTimeout' },
-            { ...P2P_CONTRACT_CONFIG, functionName: 'sellerReleaseTimeout' },
-        ],
-    });
-    const [currentBuyerTimeout, currentSellerTimeout] = timeoutData || [];
-
-    const handleSetBuyerTimeout = async () => {
-        if (!buyerTimeout || parseInt(buyerTimeout) <= 0) {
-            addNotification({ type: 'error', message: 'Please enter a valid timeout in seconds.' });
+    const handleUpdateBuyerTimeout = async () => {
+        const timeoutNumber = parseInt(buyerTimeout);
+        if (isNaN(timeoutNumber) || timeoutNumber <= 0) {
+            showError('Invalid Timeout', 'Please enter a valid timeout in seconds.');
             return;
         }
+
+        setIsUpdatingBuyer(true);
         try {
             const hash = await writeContractAsync({
                 ...P2P_CONTRACT_CONFIG,
                 functionName: 'setBuyerPaymentTimeout',
-                args: [BigInt(buyerTimeout)],
+                args: [BigInt(timeoutNumber)],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification({ type: 'success', message: 'Buyer payment timeout updated!' });
-            refetch(); // Refresh both values
+            
+            success('Buyer Timeout Updated', 'Buyer payment timeout updated!');
+            onUpdate();
         } catch (err: any) {
-            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            showError('Error', `Error: ${err.shortMessage || err.message}`);
         } finally {
+            setIsUpdatingBuyer(false);
             reset();
         }
     };
 
-    const handleSetSellerTimeout = async () => {
-        if (!sellerTimeout || parseInt(sellerTimeout) <= 0) {
-            addNotification({ type: 'error', message: 'Please enter a valid timeout in seconds.' });
+    const handleUpdateSellerTimeout = async () => {
+        const timeoutNumber = parseInt(sellerTimeout);
+        if (isNaN(timeoutNumber) || timeoutNumber <= 0) {
+            showError('Invalid Timeout', 'Please enter a valid timeout in seconds.');
             return;
         }
+
+        setIsUpdatingSeller(true);
         try {
             const hash = await writeContractAsync({
                 ...P2P_CONTRACT_CONFIG,
                 functionName: 'setSellerReleaseTimeout',
-                args: [BigInt(sellerTimeout)],
+                args: [BigInt(timeoutNumber)],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification({ type: 'success', message: 'Seller release timeout updated!' });
-            refetch(); // Refresh both values
+            
+            success('Seller Timeout Updated', 'Seller release timeout updated!');
+            onUpdate();
         } catch (err: any) {
-            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            showError('Error', `Error: ${err.shortMessage || err.message}`);
         } finally {
+            setIsUpdatingSeller(false);
             reset();
         }
     };
 
     return (
-        <div className="p-6 bg-slate-800 rounded-lg border border-slate-700 space-y-6">
-            <h3 className="text-xl font-semibold text-white">Manage Timeouts</h3>
-            <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400 block">Current Buyer Timeout: {currentBuyerTimeout?.result?.toString() ?? 'Loading...'} seconds</label>
-                <input type="number" value={buyerTimeout} onChange={e => setBuyerTimeout(e.target.value)} placeholder="New Buyer Payment Timeout (seconds)" className="w-full bg-slate-900 rounded-md p-2 border border-slate-600" />
-                <button onClick={handleSetBuyerTimeout} disabled={isPending} className="w-full font-semibold py-2 px-4 rounded-lg bg-slate-600 hover:bg-slate-700 disabled:opacity-50">
-                    {isPending ? <Spinner /> : "Set Buyer Timeout"}
-                </button>
-            </div>
-             <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400 block">Current Seller Timeout: {currentSellerTimeout?.result?.toString() ?? 'Loading...'} seconds</label>
-                <input type="number" value={sellerTimeout} onChange={e => setSellerTimeout(e.target.value)} placeholder="New Seller Release Timeout (seconds)" className="w-full bg-slate-900 rounded-md p-2 border border-slate-600" />
-                <button onClick={handleSetSellerTimeout} disabled={isPending} className="w-full font-semibold py-2 px-4 rounded-lg bg-slate-600 hover:bg-slate-700 disabled:opacity-50">
-                    {isPending ? <Spinner /> : "Set Seller Timeout"}
-                </button>
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Timeout Management</h3>
+                
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Buyer Payment Timeout (seconds)
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={buyerTimeout}
+                                onChange={(e) => setBuyerTimeout(e.target.value)}
+                                min="1"
+                                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={handleUpdateBuyerTimeout}
+                                disabled={isUpdatingBuyer || isPending}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isUpdatingBuyer ? 'Updating...' : 'Update'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Seller Release Timeout (seconds)
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={sellerTimeout}
+                                onChange={(e) => setSellerTimeout(e.target.value)}
+                                min="1"
+                                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={handleUpdateSellerTimeout}
+                                disabled={isUpdatingSeller || isPending}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isUpdatingSeller ? 'Updating...' : 'Update'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

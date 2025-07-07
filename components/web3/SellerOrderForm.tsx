@@ -156,27 +156,25 @@ const SellerOrderForm = ({
     return (
         <>
             <form onSubmit={handleSubmit} className="space-y-6">
-                
                 {/* Crypto Amount Input */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">I want to sell</label>
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">I want to sell</label>
                     <div className="flex relative">
-                        <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); }} placeholder="0.00" className="flex-grow w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700"/>
-                        <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700 hover:bg-slate-600 rounded-r-lg transition-colors">
+                        <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); }} placeholder="0.00" className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"/>
+                        <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
                                     <img src={selectedToken && selectedToken.symbol === 'ETH' ? '/eth.svg' : selectedToken && selectedToken.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${selectedTokenAddress}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />
-                                    <span className="font-bold text-white">{selectedToken?.symbol}</span>
-                                    <ChevronDown className="h-5 w-5 text-gray-400 ml-1" />
+                                    <span className="font-bold text-white group-hover:text-red-400 transition-colors">{selectedToken?.symbol}</span>
+                                    <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-red-400 transition-colors" />
                                 </>
                             )}
                         </button>
                     </div>
                 </div>
-                
                 {/* Fiat Amount Input */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">I will receive (approx.)</label>
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">I will receive (approx.)</label>
                     <div className="flex relative">
                         <input 
                             type="text"
@@ -190,52 +188,66 @@ const SellerOrderForm = ({
                                 }
                             }} 
                             placeholder="0.00" 
-                            className="flex-grow w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700"
+                            className="flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"
                         />
-                         <button type="button" onClick={() => setIsCurrencyModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700 hover:bg-slate-600 rounded-r-lg transition-colors disabled:opacity-50" disabled={supportedCurrencies.length === 0}>
+                        <button type="button" onClick={() => setIsCurrencyModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group" disabled={supportedCurrencies.length === 0}>
                             <Image src={`https://flagcdn.com/w40/${countryCode}.png`} alt={`${fiatCurrency} flag`} width={24} height={18} className="mr-2 rounded-sm" />
-                            <span className="font-bold text-white">{fiatCurrency}</span>
-                            <ChevronDown className="h-5 w-5 text-gray-400 ml-1" />
+                            <span className="font-bold text-white group-hover:text-red-400 transition-colors">{fiatCurrency}</span>
+                            <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-red-400 transition-colors" />
                         </button>
                     </div>
                 </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Receive payment via</label>
-                    <div onClick={() => availablePaymentMethods.length > 0 && setIsPaymentModalOpen(true)} className="w-full bg-slate-900 text-white rounded-lg p-2 text-lg transition border border-slate-700 min-h-[50px] flex items-center flex-wrap gap-2 cursor-pointer hover:border-slate-600">
+                {/* Payment Method Selector */}
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">Receive payment via</label>
+                    <button
+                        type="button"
+                        onClick={() => availablePaymentMethods.length > 0 && setIsPaymentModalOpen(true)}
+                        className="w-full flex items-center flex-wrap gap-2 bg-slate-800/70 text-white rounded-xl p-4 text-lg border border-slate-700 hover:border-red-400 focus:ring-2 focus:ring-red-500 focus:outline-none transition group min-h-[50px]"
+                        disabled={availablePaymentMethods.length === 0}
+                    >
                         {selectedMethods.length === 0 ? (
-                            <span className="text-gray-500 px-2">
-                                {availablePaymentMethods.length > 0 
-                                    ? "Select payment methods..." 
-                                    : `No payment methods available for ${fiatCurrency}. Please add payment methods that support ${fiatCurrency}.`
-                                }
+                            <span className="text-gray-500">
+                                {availablePaymentMethods.length > 0
+                                    ? "Select payment methods..."
+                                    : `No payment methods available for ${fiatCurrency}. Please add payment methods that support ${fiatCurrency}.`}
                             </span>
                         ) : (
                             selectedMethods.map(method => (
-                                <span key={method.id} className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-sm font-semibold px-2 py-1 rounded-full">
+                                <span key={method.id} className="flex items-center gap-1.5 bg-red-500/20 text-red-300 text-sm font-semibold px-2 py-1 rounded-full">
                                     {method.channel}
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); handlePaymentMethodChange(method.id);}} className="text-emerald-400 hover:text-white">
-                                        <X size={14} />
+                                    <button
+                                        type="button"
+                                        onClick={e => { e.stopPropagation(); handlePaymentMethodChange(method.id); }}
+                                        className="ml-1 text-red-400 hover:text-white focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                     </button>
                                 </span>
                             ))
                         )}
-                    </div>
+                    </button>
                     {availablePaymentMethods.length === 0 && myPaymentMethods.length > 0 && (
                         <p className="text-xs text-yellow-400 mt-1">
                             Available for {fiatCurrency}: {CURRENCY_PAYMENT_METHODS[fiatCurrency]?.join(', ') || 'None'}
                         </p>
                     )}
                 </div>
-
-                {/* --- THIS IS THE FIX --- */}
-                <button 
-                    type="submit" 
-                    disabled={isProcessing || isLoadingTokens || isPriceLoading || availablePaymentMethods.length === 0} 
-                    className="w-full font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-red-400 text-white text-lg disabled:opacity-50"
-                >
-                    {isProcessing ? <Spinner text="Confirming..."/> : 'Create Sell Order'}
-                </button>
+                {/* Action Button */}
+                <div>
+                    <button 
+                        type="submit" 
+                        disabled={isProcessing || isLoadingTokens || isPriceLoading || availablePaymentMethods.length === 0 || !cryptoAmount || !fiatAmount || selectedPaymentMethodIds.length === 0} 
+                        className={[
+                            "w-full font-bold py-4 px-4 rounded-xl text-lg shadow-lg transition-all duration-200 flex items-center justify-center",
+                            "bg-gradient-to-r from-red-500 via-red-400 to-red-600 text-white hover:from-red-400 hover:to-red-500 hover:scale-[1.03] active:scale-95",
+                            (isProcessing || isLoadingTokens || isPriceLoading || availablePaymentMethods.length === 0 || !cryptoAmount || !fiatAmount || selectedPaymentMethodIds.length === 0) && "opacity-60 cursor-not-allowed"
+                        ].join(' ')}
+                    >
+                        {isProcessing ? <Spinner text="Confirming..."/> : 'Create Sell Order'}
+                    </button>
+                </div>
             </form>
 
             <TokenSelectorModal isOpen={isTokenModalOpen} onClose={() => setIsTokenModalOpen(false)} tokenList={tokenList} onSelectToken={handleTokenSelect} />

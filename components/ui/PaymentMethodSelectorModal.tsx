@@ -41,7 +41,7 @@ const PaymentMethodSelectorModal = ({ isOpen, onClose, paymentMethods, onSelectM
                     />
                 </div>
 
-                <div className="flex flex-col space-y-2 max-h-[50vh] overflow-y-auto -mr-2 pr-2">
+                <div className="flex flex-col space-y-2 max-h-[300px] overflow-y-auto -mr-2 pr-2">
                     {filteredMethods.length > 0 ? (
                         filteredMethods.map(method => (
                             <button 

@@ -2,100 +2,138 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
-import { useNotification } from '@/lib/NotificationProvider';
-import Spinner from '../ui/Spinner';
-
-// Wagmi and Viem Imports
-import { useWriteContract, useReadContract } from 'wagmi';
+import { useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
-import { P2PEscrowABI } from '@/abis/P2PEscrow';
-import { config } from '@/lib/config';
 import { isAddress } from 'viem';
+import { config } from '@/lib/config';
+import { P2PEscrowABI } from '@/abis/P2PEscrow';
+import { useToastHelpers } from '@/components/ui/ToastProvider';
+
+interface FeeManagementProps {
+    currentFee: number;
+    currentRecipient: string;
+    onUpdate: () => void;
+}
 
 const P2P_CONTRACT_CONFIG = {
     address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
     abi: P2PEscrowABI,
 };
 
-const FeeManagement = () => {
+const FeeManagement = ({ currentFee, currentRecipient, onUpdate }: FeeManagementProps) => {
     const { address } = useWeb3();
-    const { addNotification } = useNotification();
-    const [feeBps, setFeeBps] = useState('');
-    const [recipient, setRecipient] = useState('');
+    const { success, error: showError } = useToastHelpers();
+    const [newFee, setNewFee] = useState(currentFee.toString());
+    const [newRecipient, setNewRecipient] = useState(currentRecipient);
+    const [isUpdatingFee, setIsUpdatingFee] = useState(false);
+    const [isUpdatingRecipient, setIsUpdatingRecipient] = useState(false);
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
 
-    // Fetch current values from the contract
-    const { data: currentFeeBps, refetch: refetchFee } = useReadContract({
-        ...P2P_CONTRACT_CONFIG,
-        functionName: 'platformFeeBps',
-    });
-
-    const { data: currentRecipient, refetch: refetchRecipient } = useReadContract({
-        ...P2P_CONTRACT_CONFIG,
-        functionName: 'feeRecipient',
-    });
-
-    const handleSetFee = async () => {
-        if (!feeBps || parseInt(feeBps) < 0) {
-            addNotification({ type: 'error', message: 'Please enter a valid, non-negative number for the fee.' });
+    const handleUpdateFee = async () => {
+        const feeNumber = parseFloat(newFee);
+        if (isNaN(feeNumber) || feeNumber < 0) {
+            showError('Invalid Fee', 'Please enter a valid, non-negative number for the fee.');
             return;
         }
+
+        setIsUpdatingFee(true);
         try {
             const hash = await writeContractAsync({
                 ...P2P_CONTRACT_CONFIG,
                 functionName: 'setPlatformFeeBps',
-                args: [BigInt(feeBps)],
+                args: [BigInt(Math.floor(feeNumber * 100))], // Convert to basis points
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification({ type: 'success', message: 'Platform fee updated successfully!' });
-            refetchFee(); // Refresh the displayed value
+            
+            success('Fee Updated', 'Platform fee updated successfully!');
+            onUpdate();
         } catch (err: any) {
-            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            showError('Error', `Error: ${err.shortMessage || err.message}`);
         } finally {
+            setIsUpdatingFee(false);
             reset();
         }
     };
 
-    const handleSetRecipient = async () => {
-        if (!isAddress(recipient)) {
-            addNotification({ type: 'error', message: 'Please enter a valid Ethereum address.' });
+    const handleUpdateRecipient = async () => {
+        if (!isAddress(newRecipient)) {
+            showError('Invalid Address', 'Please enter a valid Ethereum address.');
             return;
         }
+
+        setIsUpdatingRecipient(true);
         try {
             const hash = await writeContractAsync({
                 ...P2P_CONTRACT_CONFIG,
                 functionName: 'setFeeRecipient',
-                args: [recipient],
+                args: [newRecipient],
             });
             await waitForTransactionReceipt(config, { hash });
-            addNotification({ type: 'success', message: 'Fee recipient updated successfully!' });
-            refetchRecipient(); // Refresh the displayed value
+            
+            success('Recipient Updated', 'Fee recipient updated successfully!');
+            onUpdate();
         } catch (err: any) {
-            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            showError('Error', `Error: ${err.shortMessage || err.message}`);
         } finally {
+            setIsUpdatingRecipient(false);
             reset();
         }
     };
 
     return (
-        <div className="p-6 bg-slate-800 rounded-lg border border-slate-700 space-y-6">
-            <h3 className="text-xl font-semibold text-white">Manage Fees</h3>
-            <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400 block">Current Fee: {currentFeeBps?.toString() ?? 'Loading...'} BPS</label>
-                <input type="number" value={feeBps} onChange={e => setFeeBps(e.target.value)} placeholder="New Fee in BPS (e.g., 50 for 0.5%)" className="w-full bg-slate-900 rounded-md p-2 border border-slate-600" />
-                <button onClick={handleSetFee} disabled={isPending} className="w-full font-semibold py-2 px-4 rounded-lg bg-slate-600 hover:bg-slate-700 disabled:opacity-50">
-                    {isPending ? <Spinner /> : "Set Platform Fee"}
-                </button>
-            </div>
-             <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400 block">Current Recipient: {currentRecipient ?? 'Loading...'}</label>
-                <input type="text" value={recipient} onChange={e => setRecipient(e.target.value)} placeholder="New Fee Recipient Address" className="w-full bg-slate-900 rounded-md p-2 border border-slate-600" />
-                <button onClick={handleSetRecipient} disabled={isPending} className="w-full font-semibold py-2 px-4 rounded-lg bg-slate-600 hover:bg-slate-700 disabled:opacity-50">
-                    {isPending ? <Spinner /> : "Set Fee Recipient"}
-                </button>
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Platform Fee Management</h3>
+                
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Platform Fee (%)
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="number"
+                                value={newFee}
+                                onChange={(e) => setNewFee(e.target.value)}
+                                step="0.01"
+                                min="0"
+                                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={handleUpdateFee}
+                                disabled={isUpdatingFee || isPending}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isUpdatingFee ? 'Updating...' : 'Update Fee'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Fee Recipient Address
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newRecipient}
+                                onChange={(e) => setNewRecipient(e.target.value)}
+                                placeholder="0x..."
+                                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={handleUpdateRecipient}
+                                disabled={isUpdatingRecipient || isPending}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isUpdatingRecipient ? 'Updating...' : 'Update Recipient'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

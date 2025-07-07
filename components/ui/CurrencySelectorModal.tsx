@@ -46,7 +46,7 @@ const CurrencySelectorModal = ({ isOpen, onClose, currencies, onSelectCurrency }
                     />
                 </div>
 
-                <div className="flex flex-col space-y-2 max-h-[50vh] overflow-y-auto -mr-2 pr-2">
+                <div className="flex flex-col space-y-2 max-h-[300px] overflow-y-auto -mr-2 pr-2">
                     {filteredCurrencies.length > 0 ? (
                         filteredCurrencies.map(currency => {
                             const countryCode = currencyCountryMap[currency] || 'xx'; // Fallback for unknown
@@ -56,7 +56,6 @@ const CurrencySelectorModal = ({ isOpen, onClose, currencies, onSelectCurrency }
                                     onClick={() => handleSelect(currency)}
                                     className="w-full flex items-center p-3 rounded-lg hover:bg-slate-700/50 transition-colors text-left"
                                 >
-                                    {/* --- THIS IS THE CHANGE --- */}
                                     <Image
                                         src={`https://flagcdn.com/w40/${countryCode}.png`}
                                         alt={`${currency} flag`}

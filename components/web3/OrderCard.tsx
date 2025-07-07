@@ -72,30 +72,35 @@ const OrderCard = ({ order, onFund, onCancelOrder, isProcessing }: OrderCardProp
     const currencySymbol = currencySymbols[order.fiatCurrency] || order.fiatCurrency;
 
     return (
-        <div className={`bg-slate-800/50 p-4 rounded-lg border border-slate-700 space-y-3`}>
-           <div className="flex justify-between items-start">
-               <div>
-                   <span className="font-bold text-lg text-white">
-                       Selling: {order.totalAmount.toLocaleString()} {order.tokenSymbol}
-                   </span>
-                   
-                   <div className="text-sm">
-                       {/* --- THIS IS THE FIX --- */}
-                       {/* We check the status before rendering the value */}
-                       {order.status === 'CLOSED' ? (
-                           <>
-                               <span className="text-gray-400">Value: </span>
-                               <span className="font-semibold text-white">Sold</span>
-                           </>
-                       ) : order.status === 'CANCELED' ? (
-                           <>
-                               <span className="text-gray-400">Value: </span>
-                               <span className="font-semibold text-white">Canceled</span>
-                           </>
-                       ) : (
-                           <>
-                               <span className="text-gray-400">Price: </span>
-                               <span className="font-semibold text-white h-6 inline-flex items-center">
+        <div className={[
+            "relative bg-slate-800/70 backdrop-blur-xl rounded-2xl border border-slate-700/60 shadow-xl p-6 flex flex-col gap-4 transition-all duration-200",
+            "hover:shadow-2xl hover:border-emerald-500/30"
+        ].join(' ')}>
+            <div className="flex justify-between items-start mb-2">
+                <div className="flex flex-col">
+                    <span className="font-bold text-lg text-white block mb-1 flex items-center gap-2">
+                        {order.tokenSymbol === 'ETH' ? (
+                            <img src="/eth.svg" alt="ETH" className="h-6 w-6 inline-block align-middle mr-1" />
+                        ) : (
+                            <span className="h-6 w-6 inline-block align-middle mr-1 bg-slate-700 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase">{order.tokenSymbol[0]}</span>
+                        )}
+                        {order.totalAmount.toLocaleString()} {order.tokenSymbol}
+                    </span>
+                    <div className="text-sm">
+                        {order.status === 'CLOSED' ? (
+                            <>
+                                <span className="text-gray-400">Value: </span>
+                                <span className="font-semibold text-white">Sold</span>
+                            </>
+                        ) : order.status === 'CANCELED' ? (
+                            <>
+                                <span className="text-gray-400">Value: </span>
+                                <span className="font-semibold text-white">Canceled</span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="text-gray-400">Price: </span>
+                                <span className="font-semibold text-white h-6 inline-flex items-center">
                                     {isPriceLoading ? <Spinner /> : (
                                         totalLiveFiatValue !== null ? (
                                             <>
@@ -109,63 +114,65 @@ const OrderCard = ({ order, onFund, onCancelOrder, isProcessing }: OrderCardProp
                                             <span className="text-red-400 text-xs">Price Unavailable</span>
                                         )
                                     )}
-                               </span>
-                           </>
-                       )}
-                   </div>
-               </div>
+                                </span>
+                            </>
+                        )}
+                    </div>
+                </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${currentStatus.pill} shadow-sm uppercase tracking-wide ml-4 mt-1`} style={{minWidth: 70, textAlign: 'center'}}>{currentStatus.text}</span>
+            </div>
 
-               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${currentStatus.pill}`}>
-                   {currentStatus.text}
-               </span>
-           </div>
+            <div className="flex flex-wrap gap-2 items-center mb-1">
+                <span className="text-xs text-gray-400">Accepting:</span>
+                {order.paymentMethods.map((method, idx) => (
+                    <span key={method + idx} className="flex items-center gap-1 bg-slate-700/60 text-emerald-300 px-2 py-0.5 rounded-full text-xs font-semibold shadow hover:bg-emerald-500/20 hover:text-emerald-200 transition-all cursor-pointer">
+                        {method}
+                    </span>
+                ))}
+            </div>
 
-           <p className="text-sm text-gray-400">
-               Accepting: {order.paymentMethods.join(', ')}
-           </p>
+            <div className="mb-2">
+                <div className="w-full bg-slate-700/60 rounded-full h-2 overflow-hidden">
+                    <div className="bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 h-2 rounded-full transition-all duration-300" style={{ width: `${filledPercentage}%` }}></div>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-400 mt-1">
+                    <span>Filled: <span className="font-bold text-white">{(order.totalAmount - order.remainingAmount).toFixed(2)}</span></span>
+                    <span>Remaining: <span className="font-bold text-white">{order.remainingAmount.toFixed(2)}</span></span>
+                </div>
+            </div>
 
-           <div>
-               <div className="w-full bg-slate-700 rounded-full h-2">
-                 <div className="bg-red-500 h-2 rounded-full" style={{ width: `${filledPercentage}%` }}></div>
-               </div>
-               <div className="flex justify-between items-center text-xs text-gray-400 mt-1">
-                   <span>Filled: {(order.totalAmount - order.remainingAmount).toFixed(2)}</span>
-                   <span>Remaining: {order.remainingAmount.toFixed(2)}</span>
-               </div>
-           </div>
-
-           <div className="!mt-4 pt-3 border-t border-slate-700/50 min-h-[40px] flex items-center justify-center gap-2">
-               {order.status === 'PENDING' && order.orderType === 'ERC20' && onFund &&
-                   <button 
-                       onClick={onFund} 
-                       disabled={isProcessing} 
-                       className="w-full text-sm font-semibold py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50 flex justify-center items-center"
-                   >
-                       {isProcessing ? <Spinner text="Processing..."/> : "Fund Escrow"}
-                   </button>
-               }
-               {(order.status === 'OPEN' || order.status === 'PENDING') && onCancelOrder &&
+            <div className="pt-3 border-t border-slate-700/40 min-h-[40px] flex items-center justify-center gap-2">
+                {order.status === 'PENDING' && order.orderType === 'ERC20' && onFund &&
                     <button 
-                       onClick={onCancelOrder} 
-                       disabled={isProcessing} 
-                       className="w-full text-sm font-semibold py-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 disabled:opacity-50 flex justify-center items-center"
-                   >
-                       <Trash2 size={16} className="mr-2"/>
-                       {isProcessing ? <Spinner/> : "Cancel Order"}
-                   </button>
-               }
-               {order.status === 'CLOSED' &&
-                   <p className="text-center text-xs text-slate-500">This order is fully completed.</p>
-               }
-               {order.status === 'CANCELED' &&
-                   <p className="text-center text-xs text-slate-500">This order was canceled</p>
-               }
+                        onClick={onFund} 
+                        disabled={isProcessing} 
+                        className="w-full text-sm font-bold py-2 rounded-xl bg-yellow-500/90 text-white hover:bg-yellow-400/90 active:scale-95 transition-all duration-150 shadow-lg disabled:opacity-50 flex justify-center items-center"
+                    >
+                        {isProcessing ? <Spinner text="Processing..."/> : "Fund Escrow"}
+                    </button>
+                }
+                {(order.status === 'OPEN' || order.status === 'PENDING') && onCancelOrder &&
+                    <button 
+                        onClick={onCancelOrder} 
+                        disabled={isProcessing} 
+                        className="w-full text-sm font-bold py-2 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/40 active:scale-95 transition-all duration-150 shadow-lg disabled:opacity-50 flex justify-center items-center"
+                    >
+                        <Trash2 size={16} className="mr-2"/>
+                        {isProcessing ? <Spinner/> : "Cancel Order"}
+                    </button>
+                }
+                {order.status === 'CLOSED' &&
+                    <p className="text-center text-xs text-slate-500">This order is fully completed.</p>
+                }
+                {order.status === 'CANCELED' &&
+                    <p className="text-center text-xs text-slate-500">This order was canceled</p>
+                }
                 {order.status === 'OPEN' && !onCancelOrder &&
-                   <p className="text-center text-xs text-slate-500">This order is open on the market.</p>
-               }
-           </div>
+                    <p className="text-center text-xs text-slate-500">This order is open on the market.</p>
+                }
+            </div>
         </div>
-   );
+    );
 };
 
 export default OrderCard;

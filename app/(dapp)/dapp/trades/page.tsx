@@ -23,6 +23,9 @@ import TradeCard from '@/components/web3/TradeCard';
 import Spinner from '@/components/ui/Spinner';
 import TradeHistoryCard from '@/components/web3/TradeHistoryCard';
 import ConnectWalletMessage from '@/components/ui/ConnectWalletMessage';
+import TradeCardSkeleton from '@/components/ui/TradeCardSkeleton';
+import BuyerTradeCardSkeleton from '@/components/ui/BuyerTradeCardSkeleton';
+import TradeHistoryCardSkeleton from '@/components/ui/TradeHistoryCardSkeleton';
 
 const NotificationModal = dynamic(() => import('@/components/ui/NotificationModal'));
 const PaymentInstructionsModal = dynamic(() => import('@/components/web3/PaymentInstructionsModal'));
@@ -361,7 +364,16 @@ const TradesPage = () => {
     const totalPages = Math.ceil(tradeHistory.length / TRADES_PER_PAGE);
 
     if (isInitializing || isAuthenticating) {
-        return <div className="max-w-4xl mx-auto"><Spinner text="Loading your trades..." /></div>;
+        return (
+            <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold text-white mb-8">My Active Trades</h1>
+                <div className="space-y-6">
+                    {[...Array(3)].map((_, i) => (
+                        <TradeCardSkeleton key={i} />
+                    ))}
+                </div>
+            </div>
+        );
     }
 
     if (!address) {
@@ -372,7 +384,11 @@ const TradesPage = () => {
         <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-8">My Active Trades</h1>
             {isLoading ? (
-                <Spinner text="Loading your trades..." />
+                <div className="space-y-6">
+                    {[...Array(3)].map((_, i) => (
+                        <TradeCardSkeleton key={i} />
+                    ))}
+                </div>
             ) : allTrades.length === 0 ? (
                 <p className="text-gray-500 text-center py-10 border-2 border-dashed border-slate-700 rounded-lg">
                     You have no active trades that require action.
@@ -413,7 +429,11 @@ const TradesPage = () => {
             <div className="mt-16">
                 <h2 className="text-2xl font-bold text-white mb-6">Trade History</h2>
                 {isLoadingHistory ? (
-                    <Spinner text="Loading history..." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[...Array(6)].map((_, i) => (
+                            <TradeHistoryCardSkeleton key={i} />
+                        ))}
+                    </div>
                 ) : tradeHistory.length === 0 ? (
                     <p className="text-gray-500 text-center py-10 border-2 border-dashed border-slate-700 rounded-lg">
                         You have no completed trades.

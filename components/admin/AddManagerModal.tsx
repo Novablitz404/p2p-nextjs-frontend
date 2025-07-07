@@ -2,23 +2,20 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
-import Modal from '../ui/Modal';
-import Spinner from '../ui/Spinner';
-import { useNotification } from '@/lib/NotificationProvider';
-
-// Wagmi and Viem Imports
-import { useWriteContract } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
-import { P2PEscrowABI } from '@/abis/P2PEscrow';
-import { config } from '@/lib/config';
 import { isAddress } from 'viem';
+import { config } from '@/lib/config';
+import { P2PEscrowABI } from '@/abis/P2PEscrow';
+import { useToastHelpers } from '@/components/ui/ToastProvider';
+import Modal from '../ui/Modal';
 
 interface AddManagerModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void; // Callback to refresh the manager list
+    onSuccess: () => void;
 }
 
 const P2P_CONTRACT_CONFIG = {
@@ -28,14 +25,14 @@ const P2P_CONTRACT_CONFIG = {
 
 const AddManagerModal = ({ isOpen, onClose, onSuccess }: AddManagerModalProps) => {
     const { address } = useWeb3();
-    const { addNotification } = useNotification();
+    const { success, error: showError } = useToastHelpers();
     const [managerAddress, setManagerAddress] = useState('');
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
 
     const handleAdd = async () => {
         if (!isAddress(managerAddress)) {
-            addNotification({ type: 'error', message: 'Please enter a valid Ethereum address.' });
+            showError('Invalid Address', 'Please enter a valid Ethereum address.');
             return;
         }
         
@@ -47,42 +44,47 @@ const AddManagerModal = ({ isOpen, onClose, onSuccess }: AddManagerModalProps) =
             });
             await waitForTransactionReceipt(config, { hash });
             
-            addNotification({ type: 'success', message: 'Manager added successfully!' });
+            success('Manager Added', 'Manager added successfully!');
             setManagerAddress('');
             onSuccess();
             onClose();
         } catch (err: any) {
-            addNotification({ type: 'error', message: `Error: ${err.shortMessage || err.message}` });
+            showError('Error', `Error: ${err.shortMessage || err.message}`);
         } finally {
             reset();
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Add New Manager">
+        <Modal isOpen={isOpen} onClose={onClose} title="Add Manager">
             <div className="space-y-4">
-                <p className="text-sm text-gray-400">
-                    Enter the wallet address for the user you want to grant manager privileges.
-                </p>
                 <div>
-                    <label htmlFor="manager-address" className="block text-sm font-medium text-gray-300 mb-1">
-                        Manager Wallet Address
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Manager Address
                     </label>
                     <input
-                        id="manager-address"
                         type="text"
                         value={managerAddress}
                         onChange={(e) => setManagerAddress(e.target.value)}
                         placeholder="0x..."
-                        className="w-full bg-slate-900 rounded-md p-2 border border-slate-600 focus:ring-emerald-500 focus:border-emerald-500"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
-                <div className="flex justify-end gap-3 pt-4">
-                    <button onClick={onClose} className="py-2 px-4 text-sm font-semibold rounded-lg bg-slate-700 hover:bg-slate-600">
+                
+                <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                        disabled={isPending}
+                    >
                         Cancel
                     </button>
-                    <button onClick={handleAdd} disabled={isPending} className="py-2 px-4 text-sm font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 flex items-center">
-                        {isPending ? <Spinner /> : "Add Manager"}
+                    <button
+                        onClick={handleAdd}
+                        disabled={isPending || !managerAddress}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isPending ? 'Adding...' : 'Add Manager'}
                     </button>
                 </div>
             </div>

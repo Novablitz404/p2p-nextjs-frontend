@@ -1,257 +1,259 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Shield, Zap, Users, Globe } from 'lucide-react';
+import { ArrowRight, Shield, Zap, Globe, Coins, Star } from 'lucide-react';
 import { Order } from '@/types';
 import PublicOrderCard from '../ui/PublicOrderCard';
 import PlatformStats from '../ui/PlatformStats';
 import PriceCarousel from '../ui/PriceCarousel';
+import { useState, useEffect } from 'react';
+
+function SwapCardHero() {
+  // BuyerDashboard swap card UI, with a subtle green-tinted gradient background
+  return (
+    <div className="relative w-full max-w-md mx-auto bg-gradient-to-br from-slate-900/80 via-emerald-900/70 to-slate-800/80 rounded-3xl shadow-2xl border border-slate-700/60 p-10 flex flex-col gap-8">
+      {/* Crypto Amount Input */}
+      <div className="relative">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">I want to buy</label>
+        <div className="flex relative">
+          <input
+            type="number"
+            value={"1.00"}
+            readOnly
+            placeholder="0.00"
+            className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"
+          />
+          <div className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 rounded-r-xl">
+            <img src="/eth.svg" alt="ETH" className="h-6 w-6 rounded-full mr-2" />
+            <span className="font-bold text-white">ETH</span>
+          </div>
+        </div>
+      </div>
+      {/* Fiat Amount Input (skeleton) */}
+      <div className="relative">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">I will spend (approx.)</label>
+        <div className="flex relative">
+          <div className="flex-grow w-full bg-slate-800/70 rounded-xl p-4 flex items-center">
+            <div className="h-6 w-24 bg-slate-700 rounded animate-pulse" />
+          </div>
+          <div className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 rounded-r-xl">
+            <img src="https://flagcdn.com/w40/us.png" alt="USD flag" width={24} height={18} className="mr-2 rounded-sm" />
+            <span className="font-bold text-white">USD</span>
+          </div>
+        </div>
+      </div>
+      {/* Action Button */}
+      <button className="mt-2 w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 hover:scale-[1.03] active:scale-95">
+        Start Trading
+      </button>
+    </div>
+  );
+}
 
 interface LandingPageProps {
   liveOrders: Order[];
 }
 
 const LandingPage = ({ liveOrders }: LandingPageProps) => {
-    return (
-        <>
-            {/* Price Carousel */}
-            <PriceCarousel />
-            
-            {/* Continuous Background */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                {/* Primary animated background pattern */}
-                <div className="absolute inset-0 opacity-20" style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Ccircle cx='100' cy='100' r='4'/%3E%3Ccircle cx='50' cy='50' r='3'/%3E%3Ccircle cx='150' cy='150' r='3'/%3E%3Ccircle cx='50' cy='150' r='2'/%3E%3Ccircle cx='150' cy='50' r='2'/%3E%3Ccircle cx='25' cy='75' r='1'/%3E%3Ccircle cx='175' cy='125' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                  animation: 'slide 180s linear infinite'
-                }}></div>
-                
-                {/* Secondary subtle pattern */}
-                <div className="absolute inset-0 opacity-10" style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.02'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                  animation: 'slide 240s linear infinite reverse'
-                }}></div>
-                
-                {/* Gradient overlays for depth and focus */}
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-900/90 via-slate-800/70 to-slate-900/90"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/50 via-transparent to-slate-900/50"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent"></div>
-                
-                {/* Floating ambient elements */}
-                <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-emerald-500/8 to-blue-500/8 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-purple-500/8 to-pink-500/8 rounded-full blur-3xl animate-pulse delay-1000"></div>
-                <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-gradient-to-r from-blue-500/8 to-purple-500/8 rounded-full blur-3xl animate-pulse delay-500"></div>
-                <div className="absolute top-1/3 right-1/4 w-48 h-48 bg-gradient-to-r from-emerald-500/6 to-purple-500/6 rounded-full blur-3xl animate-pulse delay-1500"></div>
+  const phrases = ['Peer-to-Peer', 'ETH-to-USD', 'USD-to-ETH'];
+  const [animatedText, setAnimatedText] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimatedText((prev) => (prev + 1) % phrases.length);
+    }, 3000); // Change every 3 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <>
+      {/* Price Carousel */}
+      <PriceCarousel />
+
+      {/* Hero Section - Osmosis style */}
+      <div className="pt-20 pb-10">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center relative">
+          {/* Hero Card */}
+          <div className="relative w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between bg-slate-900/80 rounded-3xl shadow-2xl px-8 py-14 md:py-20 md:px-16 z-10">
+            {/* Apply a subtle green-tinted gradient background to the hero card */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-slate-900/80 via-emerald-900/70 to-slate-800/80 z-0" />
+            <div className="relative z-10 w-full flex flex-col md:flex-row items-center justify-between">
+              {/* Left: Headline and CTA */}
+              <div className="flex-1 flex flex-col items-start justify-center max-w-2xl">
+                <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight mb-6">
+                  The Future of
+                  <span className="relative inline-block ml-4 align-middle" style={{ minWidth: '10.5ch' }}>
+                    {phrases.map((phrase, idx) => (
+                      <span
+                        key={phrase}
+                        className={`absolute left-0 top-0 transition-opacity duration-1000 ease-in-out text-emerald-400 ${animatedText === idx ? 'opacity-100' : 'opacity-0'}`}
+                        style={{ position: idx === 0 ? 'relative' : 'absolute' }}
+                      >
+                        {phrase}
+                      </span>
+                    ))}
+                  </span>
+                </h1>
+                <p className="mt-4 max-w-3xl text-2xl font-semibold text-white leading-relaxed mb-8">
+                  <span className="text-emerald-400">Global Crypto</span>, <span className="text-blue-400">Local Access</span>. <span className="text-gray-300">On-chain</span> <span className="text-emerald-400">securely</span> <span className="text-gray-300">in seconds.</span>
+                </p>
+              </div>
+              {/* Right: Overlapping Swap Card Illustration */}
+              <div className="flex-1 flex items-center justify-center z-20 md:-mr-24 mt-10 md:mt-0">
+                <SwapCardHero />
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-                        {/* Hero Section */}
-            <div className="relative overflow-hidden">
-                <div className="relative flex flex-col items-center justify-center text-center pt-20 pb-16 px-4">
-                    <div className="relative z-10 max-w-5xl mx-auto">
+      {/* Platform Stats Section - separate, card style */}
+      <section className="relative z-20 max-w-6xl mx-auto px-4 py-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">On boarding the next 1 million users on-chain</h2>
+        <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
+          <PlatformStats />
+        </div>
+      </section>
 
-                        
-                        {/* Main headline */}
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-8">
-                            The future of <br />
-                            <span className="bg-gradient-to-r from-emerald-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                                decentralized peer-to-peer
-                            </span>
-                        </h1>
-                        
-                        {/* Subtitle */}
-                        <p className="mt-8 max-w-3xl mx-auto text-lg md:text-xl text-gray-300 leading-relaxed mb-10">
-                            The most secure and efficient P2P trading platform. 
-                            <span className="text-emerald-400 font-semibold"> Zero fees</span>, instant settlements, and 
-                            <span className="text-emerald-400 font-semibold"> smart contract escrow</span>.
-                        </p>
-                        
-                        {/* CTA buttons */}
-                        <div className="flex justify-center items-center mb-8">
-                            <Link 
-                                href="/dapp" 
-                                className="group inline-flex items-center justify-center px-8 py-4 font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105 hover:from-emerald-600 hover:to-emerald-700"
-                            >
-                                <span className="mr-2">Launch App</span>
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                        </div>
-                        
-                        {/* Platform Stats in Hero */}
-                        <div className="mt-8">
-                            <PlatformStats />
-                        </div>
-                    </div>
-                </div>
+      {/* Features Section */}
+      <div className="max-w-7xl mx-auto px-4 py-16 relative z-10">
+        <div className="absolute inset-0 bg-slate-800/10 rounded-3xl backdrop-blur-sm"></div>
+        <div className="relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-bold text-white mb-6">Built for Traders</h2>
+            <p className="text-gray-400 max-w-4xl mx-auto text-xl">
+              Professional-grade P2P trading with institutional-level security and DeFi-native features.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-emerald-500/30 backdrop-blur-sm hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Shield className="w-8 h-8 text-emerald-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">Smart Contract Escrow</h3>
+              <p className="text-gray-400 leading-relaxed">
+                All funds are locked in audited smart contracts with automatic dispute resolution and timeouts.
+              </p>
             </div>
-
-
-
-            {/* Features Section */}
-            <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
-                <div className="absolute inset-0 bg-slate-800/10 rounded-3xl backdrop-blur-sm"></div>
-                <div className="relative z-10">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl font-bold text-white mb-4">Built for Traders</h2>
-                        <p className="text-gray-400 max-w-3xl mx-auto text-lg">
-                            Professional-grade P2P trading with institutional-level security and DeFi-native features.
-                        </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-emerald-500/30 backdrop-blur-sm">
-                            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <Shield className="w-7 h-7 text-emerald-400" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white mb-3">Smart Contract Escrow</h3>
-                            <p className="text-gray-400 leading-relaxed">
-                                All funds are locked in audited smart contracts with automatic dispute resolution and timeouts.
-                            </p>
-                        </div>
-                        
-                        <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-blue-500/30 backdrop-blur-sm">
-                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <Zap className="w-7 h-7 text-blue-400" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white mb-3">Instant Settlement</h3>
-                            <p className="text-gray-400 leading-relaxed">
-                                Real-time price feeds and instant confirmations with no waiting periods or delays.
-                            </p>
-                        </div>
-                        
-                        <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-purple-500/30 backdrop-blur-sm">
-                            <div className="w-14 h-14 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <Globe className="w-7 h-7 text-purple-400" />
-                                </div>
-                            <h3 className="text-xl font-bold text-white mb-3">Global Liquidity</h3>
-                            <p className="text-gray-400 leading-relaxed">
-                                Access to worldwide markets with support for multiple currencies and payment methods.
-                            </p>
-                        </div>
-                        
-                        <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-orange-500/30 backdrop-blur-sm">
-                            <div className="w-14 h-14 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <Users className="w-7 h-7 text-orange-400" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white mb-3">Zero Fees</h3>
-                            <p className="text-gray-400 leading-relaxed">
-                                No platform fees, no hidden costs. Trade directly with peers without intermediaries.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+            <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-blue-500/30 backdrop-blur-sm hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Zap className="w-8 h-8 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">Instant Settlement</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Real-time price feeds and instant confirmations with no waiting periods or delays.
+              </p>
             </div>
-
-            {/* Live Orders Section */}
-            {liveOrders && liveOrders.length > 0 && (
-                <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
-                    <div className="absolute inset-0 bg-slate-800/15 rounded-3xl backdrop-blur-sm"></div>
-                    <div className="relative z-10">
-                        <div className="text-center mb-12">
-                            <h2 className="text-4xl font-bold text-white mb-4">Live Marketplace</h2>
-                            <p className="text-gray-400 text-lg max-w-3xl mx-auto">
-                                Discover real-time orders from verified sellers across the globe. 
-                                Start trading instantly with secure peer-to-peer transactions.
-                            </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {liveOrders.map(order => (
-                                <PublicOrderCard key={order.id} order={order} />
-                            ))}
-                        </div>
-                        
-                        <div className="text-center mt-12">
-                            <Link 
-                                href="/dapp" 
-                                className="group inline-flex items-center justify-center px-8 py-4 font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105"
-                            >
-                                <span className="mr-2">Explore All Markets</span>
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Footer Section */}
-            <div className="border-t border-slate-800/50 relative z-20">
-                <div className="max-w-7xl mx-auto px-4 py-16">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        {/* Brand */}
-                        <div className="col-span-1 md:col-span-2">
-                            <h3 className="text-2xl font-bold text-white mb-4">P2P Exchange</h3>
-                            <p className="text-gray-400 mb-6 max-w-md">
-                                The most secure and efficient peer-to-peer trading platform. 
-                                Built on Base Network with smart contract escrow.
-                            </p>
-                            <div className="flex space-x-4">
-                                <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
-                                    <Shield className="w-5 h-5 text-emerald-400" />
-                                </div>
-                                <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
-                                    <Zap className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
-                                    <Globe className="w-5 h-5 text-purple-400" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Quick Links */}
-                        <div>
-                            <h4 className="text-lg font-semibold text-white mb-4">Platform</h4>
-                            <ul className="space-y-2">
-                                <li>
-                                    <Link href="/dapp" className="text-gray-400 hover:text-white transition-colors">
-                                        Launch App
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link href="/dapp/trades" className="text-gray-400 hover:text-white transition-colors">
-                                        View Markets
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link href="/dapp/orders" className="text-gray-400 hover:text-white transition-colors">
-                                        Create Order
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
-
-                        {/* Support */}
-                        <div>
-                            <h4 className="text-lg font-semibold text-white mb-4">Support</h4>
-                            <ul className="space-y-2">
-                                <li>
-                                    <Link href="/admin" className="text-gray-400 hover:text-white transition-colors">
-                                        Admin Panel
-                                    </Link>
-                                </li>
-                                <li>
-                                    <span className="text-gray-400">Base Network</span>
-                                </li>
-                                <li>
-                                    <span className="text-gray-400">Smart Contracts</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="border-t border-slate-800 mt-12 pt-8">
-                        <div className="flex flex-col md:flex-row justify-between items-center">
-                            <p className="text-gray-400 text-sm">
-                                © 2024 P2P Exchange. Built on Base Network.
-                            </p>
-                            <div className="flex items-center space-x-4 mt-4 md:mt-0">
-                                <span className="text-xs text-gray-500">Live on Base</span>
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-purple-500/30 backdrop-blur-sm hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Globe className="w-8 h-8 text-purple-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">Global Liquidity</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Access to worldwide markets with support for multiple currencies and payment methods.
+              </p>
             </div>
-        </>
-    );
+            <div className="group bg-slate-800/50 border border-slate-700/50 rounded-2xl p-8 hover:bg-slate-800/80 transition-all duration-300 hover:border-orange-500/30 backdrop-blur-sm hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Coins className="w-8 h-8 text-orange-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">Zero Fees</h3>
+              <p className="text-gray-400 leading-relaxed">
+                No platform fees, no hidden costs. Trade directly with peers without intermediaries.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Live Orders Section */}
+      {liveOrders && liveOrders.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 py-16 relative z-10">
+          <div className="absolute inset-0 bg-slate-800/15 rounded-3xl backdrop-blur-sm"></div>
+          <div className="relative z-10">
+            <div className="text-center mb-16">
+              <h2 className="text-5xl font-bold text-white mb-6">Live Marketplace</h2>
+              <p className="text-gray-400 text-xl max-w-4xl mx-auto">
+                Discover real-time orders from verified sellers across the globe. Start trading instantly with secure peer-to-peer transactions.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {liveOrders.map(order => (
+                <PublicOrderCard key={order.id} order={order} />
+              ))}
+            </div>
+            <div className="text-center mt-16">
+              <Link href="/dapp" className="group inline-flex items-center justify-center px-10 py-5 font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105 text-lg">
+                <span className="mr-3">Explore All Markets</span>
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer - Osmosis style */}
+      <footer className="w-full bg-slate-900/90 border-t border-slate-800 pt-16 pb-8 mt-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 text-left text-gray-400 mb-12">
+            <div>
+              <div className="font-bold text-white mb-3">Platform</div>
+              <ul className="space-y-2">
+                <li><a href="/dapp" className="hover:text-emerald-400 transition">Trade</a></li>
+                <li><a href="/dapp" className="hover:text-emerald-400 transition">Orders</a></li>
+                <li><a href="/dapp/payment-methods" className="hover:text-emerald-400 transition">Payment Methods</a></li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-bold text-white mb-3">Token</div>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-emerald-400 transition">RAMPZ</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">CoinGecko</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">CoinMarketCap</a></li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-bold text-white mb-3">Community</div>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-emerald-400 transition">Twitter</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">Telegram</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">Discord</a></li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-bold text-white mb-3">Developers</div>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-emerald-400 transition">Docs</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">GitHub</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">Grants</a></li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-bold text-white mb-3">Team</div>
+              <ul className="space-y-2">
+                <li><a href="mailto:hello@rampz.xyz" className="hover:text-emerald-400 transition">Contact</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">Blog</a></li>
+                <li><a href="#" className="hover:text-emerald-400 transition">Careers</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-slate-800 my-8"></div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src="/RampzLogo.png" alt="Rampz Logo" className="h-10 w-auto" />
+              <span className="font-bold text-white text-lg tracking-wide">RAMPZ</span>
+            </div>
+            <div className="flex gap-5 text-2xl">
+              <a href="#" className="hover:text-emerald-400 transition" aria-label="Twitter"><svg width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.93 9.93 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724c-.951.564-2.005.974-3.127 1.195A4.916 4.916 0 0 0 16.616 3c-2.72 0-4.924 2.206-4.924 4.924 0 .386.044.763.127 1.124C7.728 8.807 4.1 6.884 1.671 3.965c-.423.724-.666 1.561-.666 2.475 0 1.708.87 3.216 2.188 4.099a4.904 4.904 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.936 4.936 0 0 1-2.224.084c.627 1.956 2.444 3.377 4.6 3.417A9.867 9.867 0 0 1 0 21.543a13.94 13.94 0 0 0 7.548 2.212c9.057 0 14.009-7.514 14.009-14.009 0-.213-.005-.425-.014-.636A10.012 10.012 0 0 0 24 4.557z"/></svg></a>
+              <a href="#" className="hover:text-emerald-400 transition" aria-label="GitHub"><svg width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.809 1.304 3.495.997.108-.775.418-1.305.762-1.605-2.665-.305-5.466-1.334-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23a11.52 11.52 0 0 1 3.003-.404c1.018.005 2.045.138 3.003.404 2.291-1.553 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.624-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.694.825.576C20.565 21.796 24 17.299 24 12c0-6.627-5.373-12-12-12z"/></svg></a>
+              <a href="#" className="hover:text-emerald-400 transition" aria-label="Telegram"><svg width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.371 0 0 5.371 0 12c0 6.627 5.371 12 12 12s12-5.373 12-12c0-6.629-5.371-12-12-12zm5.707 8.293l-1.414 8.485c-.104.623-.441.771-.893.48l-2.475-1.826-1.193 1.15c-.132.132-.242.242-.495.242l.176-2.497 4.545-4.104c.198-.176-.043-.274-.308-.098l-5.617 3.537-2.419-.756c-.527-.164-.537-.527.11-.777l9.447-3.646c.441-.164.827.098.684.771z"/></svg></a>
+            </div>
+            <div className="text-gray-500 text-sm mt-4 md:mt-0">&copy; {new Date().getFullYear()} Rampz. All rights reserved.</div>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
 };
 
 export default LandingPage;

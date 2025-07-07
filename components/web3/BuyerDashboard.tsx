@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useWeb3 } from '@/lib/Web3Provider';
@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Order, MatchedOrder, TradePlan, Token, UserProfile } from '@/types';
 import Image from 'next/image';
+import clsx from 'clsx';
 
 // Wagmi and Viem Imports
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
@@ -51,7 +52,7 @@ const formatFiatValue = (value: string): string => {
     return parts.join('.');
 };
 
-const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencies }: BuyerDashboardProps) => {
+const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, supportedCurrencies }: BuyerDashboardProps) => {
     const { addNotification } = useNotifications();
     const router = useRouter();
 
@@ -80,37 +81,59 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
     const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] = useState(false);
     const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
 
-    const selectedToken = tokenList.find(t => t.address === selectedTokenAddress);
-    const countryCode = currencyCountryMap[fiatCurrency] || 'xx';
+    // Memoize selected token to prevent unnecessary re-computations
+    const selectedToken = useMemo(() => 
+        tokenList.find(t => t.address === selectedTokenAddress), 
+        [tokenList, selectedTokenAddress]
+    );
+    
+    const countryCode = useMemo(() => 
+        currencyCountryMap[fiatCurrency] || 'xx', 
+        [fiatCurrency]
+    );
 
-    // Filter payment methods based on selected currency
+    // Memoize payment methods to prevent unnecessary re-computations
     const availablePaymentMethods = useMemo(() => {
         const currencyMethods = CURRENCY_PAYMENT_METHODS[fiatCurrency] || [];
         return currencyMethods;
     }, [fiatCurrency]);
 
-    // All useEffect hooks for UI logic and price fetching are preserved
+    // Memoize initialization effect to prevent unnecessary re-renders
     useEffect(() => {
-        if (!isLoadingTokens && availablePaymentMethods.length > 0 && !paymentMethod) setPaymentMethod(availablePaymentMethods[0]);
-        if (!isLoadingTokens && supportedCurrencies.length > 0 && !fiatCurrency) setFiatCurrency(supportedCurrencies[0]);
-        if (!isLoadingTokens && tokenList.length > 0 && !selectedTokenAddress) setSelectedTokenAddress(tokenList[0].address);
+        if (!isLoadingTokens && availablePaymentMethods.length > 0 && !paymentMethod) {
+            setPaymentMethod(availablePaymentMethods[0]);
+        }
+        if (!isLoadingTokens && supportedCurrencies.length > 0 && !fiatCurrency) {
+            setFiatCurrency(supportedCurrencies[0]);
+        }
+        if (!isLoadingTokens && tokenList.length > 0 && !selectedTokenAddress) {
+            setSelectedTokenAddress(tokenList[0].address);
+        }
     }, [isLoadingTokens, availablePaymentMethods, supportedCurrencies, tokenList, paymentMethod, fiatCurrency, selectedTokenAddress]);
 
-    useEffect(() => {
+    // Memoize price fetching to prevent unnecessary API calls
+    const fetchPrice = useCallback(async () => {
         if (!selectedToken || !fiatCurrency) return;
-        const fetchPrice = async () => {
-            setIsPriceLoading(true); setMarketPrice(null);
-            try {
-                const response = await fetch(`/api/getTokenPrice?symbol=${selectedToken.symbol}&currency=${fiatCurrency}`);
-                if (!response.ok) throw new Error('Failed to fetch price');
-                const data = await response.json();
-                setMarketPrice(data.price);
-            } catch (error) { console.error("Price fetch error:", error); } 
-            finally { setIsPriceLoading(false); }
-        };
-        fetchPrice();
+        
+        setIsPriceLoading(true);
+        setMarketPrice(null);
+        try {
+            const response = await fetch(`/api/getTokenPrice?symbol=${selectedToken.symbol}&currency=${fiatCurrency}`);
+            if (!response.ok) throw new Error('Failed to fetch price');
+            const data = await response.json();
+            setMarketPrice(data.price);
+        } catch (error) { 
+            console.error("Price fetch error:", error); 
+        } finally { 
+            setIsPriceLoading(false); 
+        }
     }, [selectedToken, fiatCurrency]);
 
+    useEffect(() => {
+        fetchPrice();
+    }, [fetchPrice]);
+
+    // Memoize crypto to fiat conversion
     useEffect(() => {
         if (lastEdited !== 'crypto' || marketPrice === null) return;
         const cryptoValue = parseFloat(cryptoAmount);
@@ -118,22 +141,30 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
         setFiatAmount(isNaN(calculatedFiat) ? '' : calculatedFiat.toFixed(2));
     }, [cryptoAmount, marketPrice, lastEdited]);
 
+    // Memoize fiat to crypto conversion
     useEffect(() => {
         if (lastEdited !== 'fiat' || marketPrice === null) return;
         const fiatValue = parseFloat(fiatAmount.replace(/,/g, ''));
         setCryptoAmount(fiatValue > 0 && marketPrice > 0 ? (fiatValue / marketPrice).toPrecision(8) : '');
     }, [fiatAmount, marketPrice, lastEdited]);
 
-    // UI handlers are preserved
-    const handleTokenSelect = (address: string) => setSelectedTokenAddress(address);
-    const handleCurrencySelect = (currency: string) => setFiatCurrency(currency);
-    const handlePaymentMethodSelect = (method: string) => { setPaymentMethod(method); setIsPaymentMethodModalOpen(false); };
-    const handleFindMatch = () => setIsRiskModalOpen(true);
-    const handleSaveSettings = (newMarkup: string) => setMaxMarkup(newMarkup);
+    // Memoize handlers to prevent unnecessary re-renders
+    const handleTokenSelect = useCallback((address: string) => setSelectedTokenAddress(address), []);
+    const handleCurrencySelect = useCallback((currency: string) => setFiatCurrency(currency), []);
+    const handlePaymentMethodSelect = useCallback((method: string) => { 
+        setPaymentMethod(method); 
+        setIsPaymentMethodModalOpen(false); 
+    }, []);
+    const handleFindMatch = useCallback(() => setIsRiskModalOpen(true), []);
+    const handleSaveSettings = useCallback((newMarkup: string) => setMaxMarkup(newMarkup), []);
 
-    const executeMatchFinding = async () => {
+    // Memoize execute match finding to prevent unnecessary re-renders
+    const executeMatchFinding = useCallback(async () => {
         setIsRiskModalOpen(false);
-        if (!selectedToken || !userId) { addNotification({ type: 'error', message: 'Please connect wallet and select a token.' }); return; }
+        if (!selectedToken || !userId) { 
+            addNotification({ type: 'error', message: 'Please connect wallet and select a token.' }); 
+            return; 
+        }
     
         setIsMatching(true);
         try {
@@ -150,7 +181,11 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
             
             const q = query(collection(db, "orders"), where('status', '==', 'OPEN'), where('paymentMethods', 'array-contains', paymentMethod), where('tokenAddress', '==', selectedTokenAddress), where('fiatCurrency', '==', fiatCurrency));
             const orderSnapshot = await getDocs(q);
-            if (orderSnapshot.empty) { addNotification({ type: 'info', message: 'No open orders found for your criteria.' }); setIsMatching(false); return; }
+            if (orderSnapshot.empty) { 
+                addNotification({ type: 'info', message: 'No open orders found for your criteria.' }); 
+                setIsMatching(false); 
+                return; 
+            }
     
             const buyerMaxMarkup = maxMarkup ? parseFloat(maxMarkup) : null;
             let allPotentialOrders: Order[] = [];
@@ -161,13 +196,21 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
                 allPotentialOrders.push(order);
             });
     
-            if (allPotentialOrders.length === 0) { addNotification({ type: 'info', message: 'No orders found that meet all criteria.' }); setIsMatching(false); return; }
+            if (allPotentialOrders.length === 0) { 
+                addNotification({ type: 'info', message: 'No orders found that meet all criteria.' }); 
+                setIsMatching(false); 
+                return; 
+            }
     
             const sellerIds = [...new Set(allPotentialOrders.map(o => o.seller))];
             const profiles: { [key: string]: UserProfile } = {};
             const profilePromises = sellerIds.map(id => getDoc(doc(db, "users", id)));
             const profileSnapshots = await Promise.all(profilePromises);
-            profileSnapshots.forEach(userDoc => { if (userDoc.exists()) { profiles[userDoc.id] = userDoc.data() as UserProfile; } });
+            profileSnapshots.forEach(userDoc => { 
+                if (userDoc.exists()) { 
+                    profiles[userDoc.id] = userDoc.data() as UserProfile; 
+                } 
+            });
             setSellerProfiles(profiles);
     
             const availableOrders = allPotentialOrders.sort((a, b) => {
@@ -278,7 +321,8 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
                 if (amountToFillInWei > 0n) {
                     const amountFound = formatUnits(buyAmountInWei - amountToFillInWei, selectedToken.decimals);
                     addNotification({ type: 'error', message: `Insufficient Liquidity: Could only find ${parseFloat(amountFound).toFixed(2)} assets.` });
-                    setIsMatching(false); return;
+                    setIsMatching(false); 
+                    return;
                 }
                 
                 matchedOrders = optimalOrders;
@@ -292,9 +336,10 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
         } finally {
             setIsMatching(false);
         }
-    };
+    }, [selectedToken, userId, cryptoAmount, paymentMethod, selectedTokenAddress, fiatCurrency, maxMarkup, addNotification]);
 
-    const handleSellerSelected = async (selectedSeller: any) => {
+    // Memoize seller selection handler
+    const handleSellerSelected = useCallback(async (selectedSeller: any) => {
         if (!selectedSeller || !selectedSeller.matchedOrders.length) return;
         
         setIsSellerSuggestionModalOpen(false);
@@ -309,12 +354,11 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
         };
         
         await handleConfirmTrade(finalTradePlan);
-    };
+    }, [userId]);
 
-    const handleConfirmTrade = async (finalTradePlan: TradePlan) => {
+    // Memoize confirm trade handler
+    const handleConfirmTrade = useCallback(async (finalTradePlan: TradePlan) => {
         if (!finalTradePlan || !finalTradePlan.matches.length) return;
-        
-        addNotification({ type: 'info', message: 'Please confirm in your wallet to lock the trades.' });
 
         try {
             const orderIds = finalTradePlan.matches.map(match => BigInt(match.onChainId));
@@ -326,7 +370,6 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
                 args: [orderIds, amountsToLockInWei],
             });
 
-            addNotification({ type: 'info', message: 'Transaction sent! Waiting for confirmation...' });
             const receipt = await waitForTransactionReceipt(config, { hash });
 
             if (receipt.status !== 'success') throw new Error('Transaction failed on-chain.');
@@ -390,90 +433,130 @@ const BuyerDashboard = ({ userId, tokenList, isLoadingTokens, supportedCurrencie
         } finally {
             reset();
         }
-    };
+    }, [writeContractAsync, addNotification, router, reset]);
 
     return (
-        <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+        <>
+            {/* Title and Settings Button */}
             <div className="relative flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Find Best Match</h2>
-                {/* Add the ref to the button and update the onClick to toggle */}
-                <button 
-                    ref={settingsButtonRef}
-                    onClick={() => setIsSettingsModalOpen(prev => !prev)} 
-                    className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
-                    aria-label="Buyer Settings"
-                >
-                    <Settings size={20} />
-                </button>
-                {/* Pass the ref to the settings modal component */}
-                <BuyerSettingsModal
-                    isOpen={isSettingsModalOpen}
-                    onClose={() => setIsSettingsModalOpen(false)}
-                    onSave={handleSaveSettings}
-                    initialMarkup={maxMarkup}
-                    toggleButtonRef={settingsButtonRef}
-                />
-            </div>
-
-            <div className="space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">I want to buy</label>
-                    <div className="flex relative">
-                        <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); }} placeholder="0.00" className="flex-grow w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700"/>
-                        <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700 hover:bg-slate-600 rounded-r-lg transition-colors">
-                            {selectedToken && <img src={selectedToken.symbol === 'ETH' ? '/eth.svg' : selectedToken.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${selectedToken.address}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />}
-                            <span className="font-bold text-white">{selectedToken?.symbol || 'Select'}</span>
-                            <ChevronDown className="h-5 w-5 text-gray-400 ml-1" />
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">I will spend (approx.)</label>
-                    <div className="flex relative">
-                        <input type="text" inputMode="decimal" value={formatFiatValue(fiatAmount)} onChange={(e) => { const sanitized = e.target.value.replace(/,/g, ''); if (!isNaN(Number(sanitized)) || sanitized === '' || sanitized.endsWith('.')) { setFiatAmount(sanitized); setLastEdited('fiat'); }}} placeholder="0.00" className="flex-grow w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700" />
-                        <button type="button" onClick={() => setIsCurrencyModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700 hover:bg-slate-600 rounded-r-lg transition-colors disabled:opacity-50" disabled={supportedCurrencies.length === 0}>
-                            <Image src={`https://flagcdn.com/w40/${countryCode}.png`} alt={`${fiatCurrency} flag`} width={24} height={18} className="mr-2 rounded-sm" />
-                            <span className="font-bold text-white">{fiatCurrency}</span>
-                            <ChevronDown className="h-5 w-5 text-gray-400 ml-1" />
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">My payment method</label>
-                    <button type="button" onClick={() => setIsPaymentMethodModalOpen(true)} className="w-full bg-slate-900 text-white rounded-lg p-3 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 flex justify-between items-center disabled:opacity-50 disabled:cursor-not-allowed" disabled={availablePaymentMethods.length === 0}>
-                        <span>
-                            {paymentMethod || (
-                                availablePaymentMethods.length > 0 
-                                    ? 'Select a method...' 
-                                    : `No payment methods available for ${fiatCurrency}`
-                            )}
-                        </span>
-                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                <div className="relative inline-block">
+                    <button 
+                        ref={settingsButtonRef}
+                        onClick={() => setIsSettingsModalOpen(prev => !prev)} 
+                        className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
+                        aria-label="Buyer Settings"
+                    >
+                        <Settings size={20} />
                     </button>
-                    {availablePaymentMethods.length === 0 && (
-                        <p className="text-xs text-yellow-400 mt-1">
-                            Available for {fiatCurrency}: {CURRENCY_PAYMENT_METHODS[fiatCurrency]?.join(', ') || 'None'}
-                        </p>
-                    )}
+                    <BuyerSettingsModal
+                        isOpen={isSettingsModalOpen}
+                        onClose={() => setIsSettingsModalOpen(false)}
+                        onSave={handleSaveSettings}
+                        initialMarkup={maxMarkup}
+                        toggleButtonRef={settingsButtonRef}
+                    />
                 </div>
-                <button onClick={handleFindMatch} disabled={isMatching || isLoadingTokens || isPriceLoading} className="w-full font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-emerald-400 text-white text-lg disabled:opacity-50">
-                    {isMatching ? <Spinner text="Finding Best Match..."/> : 'Find Best Match'}
-                </button>
             </div>
-            <SellerSuggestionModal 
-                isOpen={isSellerSuggestionModalOpen} 
-                onClose={() => setIsSellerSuggestionModalOpen(false)} 
-                onConfirm={handleSellerSelected} 
-                tradePlan={tradePlan} 
-                sellerProfiles={sellerProfiles} 
-            />
+            <form className="space-y-6">
+                {/* Crypto Amount Input */}
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">I want to buy</label>
+                    <div className="flex relative">
+                        <input
+                            type="number"
+                            value={cryptoAmount}
+                            onChange={e => { setCryptoAmount(e.target.value); setLastEdited('crypto'); }}
+                            placeholder="0.00"
+                            className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setIsTokenModalOpen(true)}
+                            className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group"
+                        >
+                            {isLoadingTokens ? <Spinner /> : (
+                                <>
+                                    <img src={selectedToken && selectedToken.symbol === 'ETH' ? '/eth.svg' : selectedToken && selectedToken.symbol === 'USDC' ? '/usdc.svg' : `https://effigy.im/a/${selectedTokenAddress}.svg`} alt="" className="h-6 w-6 rounded-full mr-2" />
+                                    <span className="font-bold text-white group-hover:text-emerald-400 transition-colors">{selectedToken?.symbol}</span>
+                                    <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-emerald-400 transition-colors" />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+                {/* Fiat Amount Input */}
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">I will spend (approx.)</label>
+                    <div className="flex relative">
+                        <input
+                            type="text"
+                            inputMode="decimal"
+                            value={formatFiatValue(fiatAmount)}
+                            onChange={e => {
+                                const sanitizedValue = e.target.value.replace(/,/g, '');
+                                if (/^\d*\.?\d{0,2}$/.test(sanitizedValue)) {
+                                    setFiatAmount(sanitizedValue);
+                                    setLastEdited('fiat');
+                                }
+                            }}
+                            placeholder="0.00"
+                            className="flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setIsCurrencyModalOpen(true)}
+                            className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group"
+                            disabled={supportedCurrencies.length === 0}
+                        >
+                            <Image src={`https://flagcdn.com/w40/${countryCode}.png`} alt={`${fiatCurrency} flag`} width={24} height={18} className="mr-2 rounded-sm" />
+                            <span className="font-bold text-white group-hover:text-emerald-400 transition-colors">{fiatCurrency}</span>
+                            <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-emerald-400 transition-colors" />
+                        </button>
+                    </div>
+                </div>
+                {/* Payment Method Selector */}
+                <div className="relative">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">My payment method</label>
+                    <button
+                        type="button"
+                        onClick={() => setIsPaymentMethodModalOpen(true)}
+                        className="w-full flex items-center justify-between bg-slate-800/70 text-white rounded-xl p-4 text-lg border border-slate-700 hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition group"
+                    >
+                        <span className="font-semibold group-hover:text-emerald-400 transition-colors">{paymentMethod || 'Select payment method'}</span>
+                        <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-emerald-400 transition-colors" />
+                    </button>
+                </div>
+                {/* Action Button */}
+                <div>
+                    <button
+                        type="button"
+                        onClick={handleFindMatch}
+                        disabled={isMatching || !cryptoAmount || !fiatAmount || !paymentMethod}
+                        className={clsx(
+                            "w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500",
+                            "bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 hover:scale-[1.03] active:scale-95",
+                            (isMatching || !cryptoAmount || !fiatAmount || !paymentMethod) && "opacity-60 cursor-not-allowed"
+                        )}
+                    >
+                        {isMatching ? <Spinner text="Finding Match..." /> : 'Find Best Match'}
+                    </button>
+                </div>
+            </form>
+            {/* Modals and Selectors */}
             <TokenSelectorModal isOpen={isTokenModalOpen} onClose={() => setIsTokenModalOpen(false)} tokenList={tokenList} onSelectToken={handleTokenSelect} />
             <PaymentMethodSelectorModal isOpen={isPaymentMethodModalOpen} onClose={() => setIsPaymentMethodModalOpen(false)} paymentMethods={availablePaymentMethods} onSelectMethod={handlePaymentMethodSelect} selectedCurrency={fiatCurrency} />
             <CurrencySelectorModal isOpen={isCurrencyModalOpen} onClose={() => setIsCurrencyModalOpen(false)} currencies={supportedCurrencies} onSelectCurrency={handleCurrencySelect} />
             <BuyerRiskWarningModal isOpen={isRiskModalOpen} onClose={() => setIsRiskModalOpen(false)} onConfirm={executeMatchFinding} />
-
-        </div>
+            <SellerSuggestionModal
+                isOpen={isSellerSuggestionModalOpen}
+                onClose={() => setIsSellerSuggestionModalOpen(false)}
+                onConfirm={handleSellerSelected}
+                tradePlan={tradePlan}
+                sellerProfiles={sellerProfiles}
+            />
+        </>
     );
-};
+});
 
 export default BuyerDashboard;

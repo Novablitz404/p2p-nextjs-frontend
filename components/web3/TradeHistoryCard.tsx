@@ -35,33 +35,44 @@ const TradeHistoryCard = ({ trade, currentUserAddress, onLeaveReview }: TradeHis
     }
 
     return (
-        <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex flex-col justify-between">
-            <div className="space-y-2">
-                <div className="flex justify-between items-start">
+        <div className={[
+            "relative bg-slate-800/70 backdrop-blur-xl rounded-2xl border border-slate-700/60 shadow-xl p-6 flex flex-col gap-4 transition-all duration-200",
+            "hover:shadow-2xl hover:border-emerald-500/30"
+        ].join(' ')}>
+            <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-3">
+                    {/* Buyer/Seller avatar (blockie or initials) */}
+                    <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-emerald-300 font-bold text-lg shadow-inner">
+                        {isBuyer ? 'B' : 'S'}
+                    </div>
                     <div>
-                        <p className="text-sm font-bold text-white">
+                        <p className="text-sm font-bold text-white mb-0.5">
                             {isBuyer ? 'Bought' : 'Sold'}: {trade.amount} {trade.tokenSymbol}
                         </p>
                         <p className="text-xs text-gray-400">
-                           {trade.createdAt ? trade.createdAt.toDate().toLocaleString() : '...'}
+                            {trade.createdAt ? trade.createdAt.toDate().toLocaleString() : '...'}
                         </p>
                     </div>
-                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${currentStatus.pill}`}>
-                        {currentStatus.text}
-                    </span>
                 </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${currentStatus.pill} shadow-sm uppercase tracking-wide`}>{currentStatus.text}</span>
             </div>
 
-            <div className="pt-3 mt-3 border-t border-slate-700/50 flex items-center justify-center gap-4">
-                {/* --- This link now works for both Completed and Canceled trades --- */}
+            <div className="pt-3 mt-3 border-t border-slate-700/40 flex items-center justify-center gap-4">
                 {explorerUrl && transactionHash && (
-                    <a href={`${explorerUrl}/tx/${transactionHash}`} target="_blank" rel="noopener noreferrer" className="flex items-center text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
+                    <a
+                        href={`${explorerUrl}/tx/${transactionHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-sm font-semibold text-emerald-400 hover:text-emerald-200 hover:underline transition-colors rounded-full px-3 py-1 bg-slate-700/60 shadow"
+                    >
                         {linkText} <ExternalLink size={14} className="ml-1.5" />
                     </a>
                 )}
-                
                 {isBuyer && trade.status === 'RELEASED' && !trade.reviewLeft && (
-                    <button onClick={() => onLeaveReview(trade)} className="flex items-center text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                    <button
+                        onClick={() => onLeaveReview(trade)}
+                        className="flex items-center text-sm font-semibold text-blue-400 hover:text-blue-200 hover:underline transition-colors rounded-full px-3 py-1 bg-slate-700/60 shadow"
+                    >
                         Leave a Review <MessageSquarePlus size={14} className="ml-1.5" />
                     </button>
                 )}

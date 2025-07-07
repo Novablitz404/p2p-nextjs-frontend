@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Users, DollarSign, Shield, Zap, BarChart3 } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, Shield, Zap, BarChart3, Coins, Activity } from 'lucide-react';
 
 interface PlatformStats {
   allTimeVolume: number;
-  totalUsers: number;
-  successRate: number;
+  assetsOnPlatform: number;
+  volume24h: number;
 }
 
 const PlatformStats = () => {
@@ -25,8 +25,8 @@ const PlatformStats = () => {
           // Set default values if API fails
           setStats({
             allTimeVolume: 0,
-            totalUsers: 0,
-            successRate: 0,
+            assetsOnPlatform: 0,
+            volume24h: 0,
           });
         }
       } catch (error) {
@@ -34,8 +34,8 @@ const PlatformStats = () => {
         // Set default values if API fails
         setStats({
           allTimeVolume: 0,
-          totalUsers: 0,
-          successRate: 0,
+          assetsOnPlatform: 0,
+          volume24h: 0,
         });
       } finally {
         setIsLoading(false);
@@ -72,24 +72,14 @@ const PlatformStats = () => {
     if (value === null || value === undefined || isNaN(value)) {
       return '$0';
     }
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
-    }
-    return `$${value.toFixed(0)}`;
+    return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatNumber = (value: number | null | undefined) => {
     if (value === null || value === undefined || isNaN(value)) {
       return '0';
     }
-    if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toString();
+    return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const statItems = [
@@ -98,39 +88,48 @@ const PlatformStats = () => {
       value: formatCurrency(stats?.allTimeVolume),
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/10',
-      borderColor: 'border-blue-500/20'
+      borderColor: 'border-blue-500/20',
+      icon: BarChart3
     },
     {
-      title: 'Total Users',
-      value: formatNumber(stats?.totalUsers),
+      title: 'Assets on Platform',
+      value: formatCurrency(stats?.assetsOnPlatform),
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/10',
-      borderColor: 'border-purple-500/20'
+      borderColor: 'border-purple-500/20',
+      icon: Coins
     },
     {
-      title: 'Success Rate',
-      value: `${stats?.successRate?.toFixed(1) || '0'}%`,
+      title: '24h Volume',
+      value: formatCurrency(stats?.volume24h),
       color: 'text-emerald-400',
       bgColor: 'bg-emerald-500/10',
-      borderColor: 'border-emerald-500/20'
+      borderColor: 'border-emerald-500/20',
+      icon: Activity
     }
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-      {statItems.map((item, index) => (
-        <div
-          key={index}
-          className={`group bg-slate-800/30 border border-slate-700/30 rounded-xl p-6 text-center transition-all duration-300 hover:bg-slate-800/50 hover:border-${item.color.split('-')[1]}-500/30 backdrop-blur-sm hover:scale-105`}
-        >
-          <div className="text-4xl font-bold text-white mb-2">
-            {item.value}
+      {statItems.map((item, index) => {
+        const IconComponent = item.icon;
+        return (
+          <div
+            key={index}
+            className={`group bg-slate-800/30 border border-slate-700/30 rounded-xl p-6 text-center transition-all duration-300 hover:bg-slate-800/50 hover:border-${item.color.split('-')[1]}-500/30 backdrop-blur-sm hover:scale-105`}
+          >
+            <div className="flex items-center justify-center mb-3">
+              <IconComponent className={`w-6 h-6 ${item.color}`} />
+            </div>
+            <div className="text-4xl font-bold text-white mb-2">
+              {item.value}
+            </div>
+            <div className="text-lg text-gray-400 font-medium">
+              {item.title}
+            </div>
           </div>
-          <div className="text-lg text-gray-400 font-medium">
-            {item.title}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

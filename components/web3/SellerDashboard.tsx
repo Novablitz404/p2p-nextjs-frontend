@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation'; // Import the useRouter hook
 import { useWeb3 } from '@/lib/Web3Provider';
 import { useNotification } from '@/lib/NotificationProvider';
@@ -40,7 +40,7 @@ interface SellerDashboardProps {
     userProfile: UserProfile | null;
 }
 
-const SellerDashboard = ({ 
+const SellerDashboard = React.memo(({ 
     userId, 
     userProfile,
     tokenList, 
@@ -64,7 +64,7 @@ const SellerDashboard = ({
     // Add state to manage the local notification modal
     const [notification, setNotification] = useState<{ isOpen: boolean; title: string; message: string; action?: { text: string; onClick: () => void; }; }>({ isOpen: false, title: '', message: '' });
 
-
+    // Memoize payment methods fetching to prevent unnecessary re-renders
     useEffect(() => {
         if (!userId) return;
         const userMethodsRef = collection(db, `users/${userId}/paymentMethods`);
@@ -75,19 +75,27 @@ const SellerDashboard = ({
         return () => unsubscribe();
     }, [userId]);
 
-    const handleCreateSellOrder = async (
+    // Memoize create sell order handler to prevent unnecessary re-renders
+    const handleCreateSellOrder = useCallback(async (
         tokenAddress: string, tokenSymbol: string, amount: string,
         selectedPaymentMethodIds: string[], fiatCurrency: string
     ) => {
         const selectedToken = tokenList.find(t => t.address === tokenAddress);
-        if (!selectedToken) { addNotification({ type: 'error', message: 'Invalid token selected.' }); return; }
+        if (!selectedToken) { 
+            addNotification({ type: 'error', message: 'Invalid token selected.' }); 
+            return; 
+        }
         const selectedMethods = myPaymentMethods.filter(m => selectedPaymentMethodIds.includes(m.id));
-        if (selectedMethods.length === 0) { addNotification({ type: 'error', message: 'Please select at least one payment method.' }); return; }
+        if (selectedMethods.length === 0) { 
+            addNotification({ type: 'error', message: 'Please select at least one payment method.' }); 
+            return; 
+        }
         setPendingOrderArgs({ tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate });
         setIsRiskModalOpen(true);
-    };
+    }, [tokenList, myPaymentMethods, markupPercentage, minCancellationRate, addNotification]);
 
-    const executeCreateSellOrder = async () => {
+    // Memoize execute create sell order handler to prevent unnecessary re-renders
+    const executeCreateSellOrder = useCallback(async () => {
         if (!pendingOrderArgs || !address) return;
         const { tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate } = pendingOrderArgs;
         setIsRiskModalOpen(false);
@@ -183,33 +191,37 @@ const SellerDashboard = ({
             reset();
             setPendingOrderArgs(null);
         }
-    };
+    }, [pendingOrderArgs, address, writeContractAsync, addNotification, router, reset, userId]);
     
-    const handleSaveSettings = (settings: { markup: number; cancellationRate: string }) => {
+    // Memoize save settings handler to prevent unnecessary re-renders
+    const handleSaveSettings = useCallback((settings: { markup: number; cancellationRate: string }) => {
         setMarkupPercentage(settings.markup);
         setMinCancellationRate(settings.cancellationRate);
-    };
+    }, []);
     
     return (
-        <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+        <>
+            {/* Title and Settings Button */}
             <div className="relative flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Create Sell Order</h2>
-                 <button 
-                    ref={settingsButtonRef}
-                    onClick={() => setIsSettingsModalOpen(prev => !prev)} 
-                    className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
-                    aria-label="Seller Settings"
-                >
-                    <Settings size={20} />
-                </button>
-                <SellerSettingsModal
-                    isOpen={isSettingsModalOpen}
-                    onClose={() => setIsSettingsModalOpen(false)}
-                    onSave={handleSaveSettings}
-                    initialMarkup={markupPercentage}
-                    initialCancellationRate={minCancellationRate}
-                    toggleButtonRef={settingsButtonRef}
-                />
+                <div className="relative inline-block">
+                    <button 
+                        ref={settingsButtonRef}
+                        onClick={() => setIsSettingsModalOpen(prev => !prev)} 
+                        className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
+                        aria-label="Seller Settings"
+                    >
+                        <Settings size={20} />
+                    </button>
+                    <SellerSettingsModal
+                        isOpen={isSettingsModalOpen}
+                        onClose={() => setIsSettingsModalOpen(false)}
+                        onSave={handleSaveSettings}
+                        initialMarkup={markupPercentage}
+                        initialCancellationRate={minCancellationRate}
+                        toggleButtonRef={settingsButtonRef}
+                    />
+                </div>
             </div>
             <SellerOrderForm
                 onSubmit={handleCreateSellOrder}
@@ -225,13 +237,12 @@ const SellerDashboard = ({
                 onClose={() => setIsRiskModalOpen(false)}
                 onConfirm={executeCreateSellOrder}
             />
-
             <NotificationModal
                 onClose={() => setNotification({ isOpen: false, title: '', message: ''})} 
                 {...notification} 
             />
-        </div>
+        </>
     );
-};
+});
 
 export default SellerDashboard;

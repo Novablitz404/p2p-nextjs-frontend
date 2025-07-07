@@ -47,7 +47,7 @@ const TokenSelectorModal = ({ isOpen, onClose, tokenList, onSelectToken }: Token
                 </div>
 
                 {/* Token List */}
-                <div className="max-h-[60vh] overflow-y-auto -mr-2 pr-2">
+                <div className="max-h-[300px] overflow-y-auto -mr-2 pr-2">
                     <ul className="space-y-2">
                         {filteredTokens.map(token => (
                             <li key={token.address}>

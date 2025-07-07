@@ -20,7 +20,7 @@ interface MultiSelectPaymentModalProps {
 const MultiSelectPaymentModal = ({ isOpen, onClose, myPaymentMethods, selectedIds, onSelectionChange, selectedCurrency }: MultiSelectPaymentModalProps) => {
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Select Payment Methods">
-            <div className="flex flex-col space-y-2 max-h-[60vh] overflow-y-auto -mr-2 pr-2">
+            <div className="flex flex-col space-y-2 max-h-[300px] overflow-y-auto -mr-2 pr-2">
                 {myPaymentMethods.length > 0 ? (
                     myPaymentMethods.map(method => {
                         const isSelected = selectedIds.includes(method.id);
