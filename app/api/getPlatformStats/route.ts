@@ -20,7 +20,7 @@ export async function GET() {
       if (orderData.remainingAmount && orderData.markupPercentage && orderData.tokenSymbol && orderData.fiatCurrency) {
         try {
           // Fetch live market price for this token
-          const priceResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/getTokenPrice?symbol=${orderData.tokenSymbol}&currency=${orderData.fiatCurrency}`);
+          const priceResponse = await fetch(`/api/getTokenPrice?symbol=${orderData.tokenSymbol}&currency=${orderData.fiatCurrency}`);
           if (priceResponse.ok) {
             const priceData = await priceResponse.json();
             const marketPrice = priceData.price;
