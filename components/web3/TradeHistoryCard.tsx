@@ -3,14 +3,16 @@
 import { Trade } from '@/types';
 import { ExternalLink, MessageSquarePlus } from 'lucide-react';
 import { DEFAULT_CHAIN_ID, SUPPORTED_NETWORKS } from '@/constants';
+import TokenLogo from '../ui/TokenLogo';
 
 interface TradeHistoryCardProps {
     trade: Trade;
     currentUserAddress: string;
     onLeaveReview: (trade: Trade) => void;
+    chainId: number;
 }
 
-const TradeHistoryCard = ({ trade, currentUserAddress, onLeaveReview }: TradeHistoryCardProps) => {
+const TradeHistoryCard = ({ trade, currentUserAddress, onLeaveReview, chainId }: TradeHistoryCardProps) => {
     const isBuyer = trade.buyer.toLowerCase() === currentUserAddress.toLowerCase();
 
     // --- Renders a badge based on the trade's final status ---
@@ -21,7 +23,7 @@ const TradeHistoryCard = ({ trade, currentUserAddress, onLeaveReview }: TradeHis
     const currentStatus = statusInfo[trade.status] || { text: trade.status, pill: 'bg-gray-700' };
 
     // --- Dynamically generate the correct block explorer URL ---
-    const explorerUrl = SUPPORTED_NETWORKS.find(n => n.chainId === DEFAULT_CHAIN_ID)?.blockExplorerUrls[0];
+    const explorerUrl = SUPPORTED_NETWORKS.find(n => n.chainId === chainId)?.blockExplorerUrls[0];
 
     // --- Determine which transaction hash to use ---
     let transactionHash: string | null | undefined = null;
@@ -41,10 +43,8 @@ const TradeHistoryCard = ({ trade, currentUserAddress, onLeaveReview }: TradeHis
         ].join(' ')}>
             <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-3">
-                    {/* Buyer/Seller avatar (blockie or initials) */}
-                    <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-emerald-300 font-bold text-lg shadow-inner">
-                        {isBuyer ? 'B' : 'S'}
-                    </div>
+                    {/* Token logo avatar */}
+                    <TokenLogo symbol={trade.tokenSymbol} address={trade.tokenAddress} className="w-9 h-9 rounded-full" size={36} />
                     <div>
                         <p className="text-sm font-bold text-white mb-0.5">
                             {isBuyer ? 'Bought' : 'Sold'}: {trade.amount} {trade.tokenSymbol}

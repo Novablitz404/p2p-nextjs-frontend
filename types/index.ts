@@ -62,7 +62,7 @@ export interface Trade {
     tokenSymbol: string;
     tokenAddress: string;
     tokenDecimals: number;
-    status: 'LOCKED' | 'FIAT_PAID' | 'RELEASED' | 'CANCELED' | 'DISPUTED';
+    status: 'LOCKED' | 'FIAT_PAID' | 'RELEASED' | 'CANCELED' | 'DISPUTED' | 'REQUESTING_SCREENSHOT';
     createdAt: Timestamp;
     fiatSentAt?: Timestamp;
     sellerPaymentDetails?: any;
@@ -79,6 +79,12 @@ export interface Trade {
     disputeResolvedAt?: Timestamp;
     disputeResolutionTime?: number;
     disputeWinner?: string;
+    // New fields for screenshot requests
+    screenshotRequestedAt?: Timestamp;
+    screenshotRequestDeadline?: Timestamp;
+    screenshotRequestReason?: string;
+    screenshotRequestedBy?: string;
+    chainId?: number; // Add chainId for network filtering
 }
 
 

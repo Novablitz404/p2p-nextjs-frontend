@@ -9,43 +9,53 @@ import PriceCarousel from '../ui/PriceCarousel';
 import { useState, useEffect } from 'react';
 
 function SwapCardHero() {
-  // BuyerDashboard swap card UI, with a subtle green-tinted gradient background
+  // BuyerDashboard swap card UI, with a glossy, darker grayish gradient background and increased height, now a bit narrower
   return (
-    <div className="relative w-full max-w-md mx-auto bg-gradient-to-br from-slate-900/80 via-emerald-900/70 to-slate-800/80 rounded-3xl shadow-2xl border border-slate-700/60 p-5 sm:p-8 md:p-10 flex flex-col gap-6 sm:gap-8">
-      {/* Crypto Amount Input */}
-      <div className="relative">
-        <label className="block text-xs sm:text-sm font-semibold text-gray-300 mb-1 sm:mb-2">I want to buy</label>
-        <div className="flex relative">
-          <input
-            type="number"
-            value={"1.00"}
-            readOnly
-            placeholder="0.00"
-            className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-3 sm:p-4 text-base sm:text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"
-          />
-          <div className="absolute right-0 top-0 h-full flex items-center justify-center px-3 sm:px-4 bg-slate-700/80 rounded-r-xl">
-            <img src="/eth.svg" alt="ETH" className="h-5 w-5 sm:h-6 sm:w-6 rounded-full mr-1 sm:mr-2" />
-            <span className="font-bold text-white text-sm sm:text-base">ETH</span>
+    <div className="relative w-full max-w-sm mx-auto bg-gradient-to-br from-gray-700/80 via-gray-900/90 to-black/90 rounded-3xl shadow-2xl border border-slate-700/60 p-5 sm:p-8 md:p-10 flex flex-col gap-6 sm:gap-8"
+         style={{ minHeight: '340px', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+      {/* Glossy overlay */}
+      <div className="absolute inset-0 rounded-3xl pointer-events-none" style={{
+        background: 'linear-gradient(120deg, rgba(255,255,255,0.10) 0%, rgba(80,80,80,0.12) 40%, rgba(0,0,0,0.18) 100%)',
+        boxShadow: '0 4px 32px 0 rgba(0,0,0,0.18)',
+        mixBlendMode: 'screen',
+        zIndex: 1
+      }} />
+      <div className="relative z-10 flex flex-col gap-6 sm:gap-8 h-full justify-center">
+        {/* Crypto Amount Input */}
+        <div className="relative">
+          <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-1 sm:mb-2">I want to buy</label>
+          <div className="flex relative">
+            <input
+              type="number"
+              value={"1.00"}
+              readOnly
+              placeholder="0.00"
+              className="hide-number-arrows flex-grow w-full bg-gray-900/60 text-gray-100 rounded-xl p-3 sm:p-4 text-base sm:text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-gray-700 placeholder-gray-500 shadow-inner"
+            />
+            <div className="absolute right-0 top-0 h-full flex items-center justify-center px-3 sm:px-4 bg-gray-800/80 rounded-r-xl">
+              <img src="/eth.svg" alt="ETH" className="h-5 w-5 sm:h-6 sm:w-6 rounded-full mr-1 sm:mr-2" />
+              <span className="font-bold text-gray-100 text-sm sm:text-base">ETH</span>
+            </div>
           </div>
         </div>
-      </div>
-      {/* Fiat Amount Input (skeleton) */}
-      <div className="relative">
-        <label className="block text-xs sm:text-sm font-semibold text-gray-300 mb-1 sm:mb-2">I will spend (approx.)</label>
-        <div className="flex relative">
-          <div className="flex-grow w-full bg-slate-800/70 rounded-xl p-3 sm:p-4 flex items-center">
-            <div className="h-5 w-16 sm:h-6 sm:w-24 bg-slate-700 rounded animate-pulse" />
-          </div>
-          <div className="absolute right-0 top-0 h-full flex items-center justify-center px-3 sm:px-4 bg-slate-700/80 rounded-r-xl">
-            <img src="https://flagcdn.com/w40/us.png" alt="USD flag" width={20} height={15} className="mr-1 sm:mr-2 rounded-sm" />
-            <span className="font-bold text-white text-sm sm:text-base">USD</span>
+        {/* Fiat Amount Input (skeleton) */}
+        <div className="relative">
+          <label className="block text-xs sm:text-sm font-semibold text-gray-200 mb-1 sm:mb-2">I will spend (approx.)</label>
+          <div className="flex relative">
+            <div className="flex-grow w-full bg-gray-900/60 rounded-xl p-3 sm:p-4 flex items-center">
+              <div className="h-5 w-16 sm:h-6 sm:w-24 bg-gray-800 rounded animate-pulse" />
+            </div>
+            <div className="absolute right-0 top-0 h-full flex items-center justify-center px-3 sm:px-4 bg-gray-800/80 rounded-r-xl">
+              <img src="https://flagcdn.com/w40/us.png" alt="USD flag" width={20} height={15} className="mr-1 sm:mr-2 rounded-sm" />
+              <span className="font-bold text-gray-100 text-sm sm:text-base">USD</span>
+            </div>
           </div>
         </div>
+        {/* Action Button */}
+        <button className="mt-2 w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 hover:scale-[1.03] active:scale-95">
+          Start Trading
+        </button>
       </div>
-      {/* Action Button */}
-      <button className="mt-2 w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 hover:scale-[1.03] active:scale-95">
-        Start Trading
-      </button>
     </div>
   );
 }

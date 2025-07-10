@@ -11,6 +11,8 @@ const symbolToSrc: Record<string, string> = {
   ETH: '/eth.svg',
   USDC: '/usdc.svg',
   IDRX: '/idrx.svg',
+  CORE: '/core.svg',
+  tCORE: '/core.svg',
 };
 
 export const TokenLogo: React.FC<TokenLogoProps> = ({ symbol, address, className = '', size = 32 }) => {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getCountFromServer } from 'firebase/firestore';
 import StatCard from '@/components/ui/StatCard';
@@ -53,7 +54,7 @@ const TradeActivityChart = () => {
 };
 
 const DashboardView = () => {
-    const { isInitializing, isAuthenticating } = useWeb3();
+    const { isInitializing, isAuthenticating, chainId } = useWeb3();
     const [stats, setStats] = useState({
         tokenCount: 0,
         feeBps: '...',
@@ -65,6 +66,12 @@ const DashboardView = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
 
     const { data: onChainData, isLoading: isLoadingOnChain, isError: isOnChainError } = useReadContracts({
         contracts: [

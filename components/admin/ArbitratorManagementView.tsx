@@ -17,14 +17,15 @@ import { useReadContracts, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { config } from '@/lib/config';
-
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 const ArbitratorManagementView = () => {
-    const { address } = useWeb3();
+    const { address, chainId } = useWeb3();
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
     const { addNotification } = useNotification();
     const [isModalOpen, setIsModalOpen] = useState(false);
 

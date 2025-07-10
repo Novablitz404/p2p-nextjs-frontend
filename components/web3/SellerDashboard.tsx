@@ -17,6 +17,7 @@ import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { erc20Abi, keccak256, toBytes } from 'viem'; 
 import { config } from '@/lib/config';
 import { parseUnits, zeroAddress, decodeEventLog, TransactionReceipt } from 'viem';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 // Component Imports
 import SellerOrderForm from './SellerOrderForm';
@@ -27,17 +28,12 @@ const SellerSettingsModal = dynamic(() => import('../modals/SellerSettingsModal'
 const NotificationModal = dynamic(() => import('../ui/NotificationModal'));
 
 
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
-
 interface SellerDashboardProps {
     userId: string;
+    userProfile: UserProfile | null;
     tokenList: Token[];
     supportedCurrencies: string[];
     isLoadingTokens: boolean;
-    userProfile: UserProfile | null;
 }
 
 const SellerDashboard = React.memo(({ 
@@ -47,7 +43,7 @@ const SellerDashboard = React.memo(({
     supportedCurrencies,
     isLoadingTokens, 
 }: SellerDashboardProps) => {
-    const { address } = useWeb3();
+    const { address, chainId } = useWeb3();
     const { addNotification } = useNotification();
     const { writeContractAsync, isPending, reset } = useWriteContract();
     const router = useRouter(); // Initialize the router
@@ -199,6 +195,12 @@ const SellerDashboard = React.memo(({
         setMinCancellationRate(settings.cancellationRate);
     }, []);
     
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
+
     return (
         <>
             {/* Title and Settings Button */}

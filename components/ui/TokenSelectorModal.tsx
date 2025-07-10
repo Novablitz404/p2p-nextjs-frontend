@@ -13,6 +13,9 @@ interface TokenSelectorModalProps {
     onSelectToken: (tokenAddress: string) => void;
 }
 
+/**
+ * TokenSelectorModal expects tokenList to be network-specific (filtered for the current chainId)
+ */
 const TokenSelectorModal = ({ isOpen, onClose, tokenList, onSelectToken }: TokenSelectorModalProps) => {
     const [searchTerm, setSearchTerm] = useState('');
 

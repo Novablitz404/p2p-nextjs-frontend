@@ -13,6 +13,7 @@ import { waitForTransactionReceipt, readContract } from 'wagmi/actions';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { config } from '@/lib/config';
 import { formatUnits } from 'viem';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 // Component Imports
 import Spinner from '@/components/ui/Spinner';
@@ -21,13 +22,8 @@ import NotAuthorizedMessage from '@/components/ui/NotAuthorizedMessage';
 
 const NotificationModal = dynamic(() => import('@/components/ui/NotificationModal'));
 
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
-
 const DisputesPage = () => {
-    const { address, isArbitrator, isInitializing, isAuthenticating } = useWeb3();
+    const { address, isArbitrator, isInitializing, isAuthenticating, chainId } = useWeb3();
 
     const [disputedTrades, setDisputedTrades] = useState<Trade[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +31,12 @@ const DisputesPage = () => {
     const [notification, setNotification] = useState({ isOpen: false, title: '', message: '' });
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
+
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
 
     // This useEffect for fetching data is correct
     useEffect(() => {
@@ -45,7 +47,11 @@ const DisputesPage = () => {
         }
 
         setIsLoading(true);
-        const q = query(collection(db, 'trades'), where('status', '==', 'DISPUTED'));
+        const q = query(
+            collection(db, 'trades'),
+            where('status', '==', 'DISPUTED'),
+            where('arbitrator', '==', address)
+        );
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedTrades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Trade));

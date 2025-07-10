@@ -47,6 +47,8 @@ const BuyerTradeCard = ({ trade, releaseTimeout, isProcessing, onClick }: BuyerT
                 return { text: 'Awaiting Your Payment', pill: 'bg-blue-500/20 text-blue-400' };
             case 'FIAT_PAID':
                 return { text: 'Waiting for Seller to Release', pill: 'bg-yellow-500/20 text-yellow-400' };
+            case 'REQUESTING_SCREENSHOT':
+                return { text: 'New Screenshot Requested', pill: 'bg-orange-500/20 text-orange-400' };
             default:
                 return { text: trade.status, pill: 'bg-gray-700' };
         }

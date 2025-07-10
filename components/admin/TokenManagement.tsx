@@ -16,18 +16,20 @@ import { waitForTransactionReceipt } from 'wagmi/actions';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { erc20Abi, zeroAddress } from 'viem';
 import { config } from '@/lib/config';
-
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
+import { CONTRACT_ADDRESSES } from '@/constants';
 
 const TokenManagement = () => {
-    const { address } = useWeb3();
+    const { address, chainId } = useWeb3();
     const { addNotification } = useNotification();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
+
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? 84532];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
 
     // Fetch the list of approved token addresses
     const { data: approvedTokenData, isLoading: isLoadingAddresses, refetch } = useReadContracts({

@@ -10,6 +10,7 @@ import { isAddress } from 'viem';
 import { config } from '@/lib/config';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { useToastHelpers } from '@/components/ui/ToastProvider';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 interface FeeManagementProps {
     currentFee: number;
@@ -17,13 +18,8 @@ interface FeeManagementProps {
     onUpdate: () => void;
 }
 
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
-
 const FeeManagement = ({ currentFee, currentRecipient, onUpdate }: FeeManagementProps) => {
-    const { address } = useWeb3();
+    const { address, chainId } = useWeb3();
     const { success, error: showError } = useToastHelpers();
     const [newFee, setNewFee] = useState(currentFee.toString());
     const [newRecipient, setNewRecipient] = useState(currentRecipient);
@@ -31,6 +27,12 @@ const FeeManagement = ({ currentFee, currentRecipient, onUpdate }: FeeManagement
     const [isUpdatingRecipient, setIsUpdatingRecipient] = useState(false);
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
+
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
 
     const handleUpdateFee = async () => {
         const feeNumber = parseFloat(newFee);

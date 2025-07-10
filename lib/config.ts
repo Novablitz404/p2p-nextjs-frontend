@@ -4,8 +4,28 @@ import { http, createConfig, createStorage, noopStorage } from 'wagmi';
 import { baseSepolia } from 'wagmi/chains';
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
 
+// Core Testnet chain config
+export const coreTestnet = {
+  id: 1114,
+  name: 'Core Testnet',
+  network: 'core-testnet',
+  nativeCurrency: {
+    name: 'Core',
+    symbol: 'tCORE',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: ['https://rpc.test2.btcs.network'] },
+    public: { http: ['https://rpc.test2.btcs.network'] },
+  },
+  blockExplorers: {
+    default: { name: 'CoreScan', url: 'https://scan.test.btcs.network' },
+  },
+  testnet: true,
+};
+
 export const config = createConfig({
-  chains: [baseSepolia],
+  chains: [baseSepolia, coreTestnet],
   connectors: [
     injected({
         target: 'metaMask',
@@ -23,6 +43,7 @@ export const config = createConfig({
   }),
   transports: {
     [baseSepolia.id]: http(),
+    [coreTestnet.id]: http('https://rpc.test2.btcs.network'),
   },
 });
 
@@ -32,6 +53,8 @@ const coinIdMap: { [symbol: string]: string } = {
   'USDT': 'tether',
   'USDC': 'usd-coin',
   'IDRX': 'idrx',
+  'tCORE': 'coredaoorg', // Add this line for testnet symbol
+  'CORE': 'coredaoorg',  // Add this line for mainnet symbol
 };
 
 export async function fetchTokenPrice(tokenSymbol: string, currency: string): Promise<number> {

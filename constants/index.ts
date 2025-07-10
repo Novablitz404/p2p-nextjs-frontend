@@ -27,9 +27,23 @@ export const BASE_SEPOLIA_CONFIG: NetworkConfig = {
     logoUrl: '/Base_Network_Logo.svg' // You will need to add this logo to your /public folder
 };
 
+export const CORE_TESTNET_CONFIG: NetworkConfig = {
+    chainId: 1114,
+    chainName: "Core Testnet",
+    rpcUrls: ["https://rpc.test2.btcs.network"],
+    nativeCurrency: {
+        name: "Core",
+        symbol: "tCORE",
+        decimals: 18,
+    },
+    blockExplorerUrls: ["https://scan.test2.btcs.network"],
+    logoUrl: '/core.svg',
+};
+
 // Array of all supported networks for the dropdown
 export const SUPPORTED_NETWORKS: NetworkConfig[] = [
     BASE_SEPOLIA_CONFIG,
+    CORE_TESTNET_CONFIG,
     // You can add more supported networks here in the future
 ];
 
@@ -82,4 +96,9 @@ export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
         'Western Union',
         'MoneyGram'
     ],
+};
+
+export const CONTRACT_ADDRESSES: Record<number, string> = {
+  84532: "0xE7222b0CBD56CAb0cebD26Bfec5579d495e0CE11", // Base Sepolia
+  1114:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Core Testnet
 };

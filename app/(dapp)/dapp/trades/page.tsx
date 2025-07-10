@@ -16,6 +16,7 @@ import { waitForTransactionReceipt, readContract } from 'wagmi/actions';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { config } from '@/lib/config';
 import { formatUnits } from 'viem';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 // Component Imports
 import BuyerTradeCard from '@/components/web3/BuyerTradeCard';
@@ -26,6 +27,8 @@ import ConnectWalletMessage from '@/components/ui/ConnectWalletMessage';
 import TradeCardSkeleton from '@/components/ui/TradeCardSkeleton';
 import BuyerTradeCardSkeleton from '@/components/ui/BuyerTradeCardSkeleton';
 import TradeHistoryCardSkeleton from '@/components/ui/TradeHistoryCardSkeleton';
+import NotAuthorizedMessage from '@/components/ui/NotAuthorizedMessage';
+import ScreenshotRequestModal from '@/components/modals/ScreenshotRequestModal';
 
 const NotificationModal = dynamic(() => import('@/components/ui/NotificationModal'));
 const PaymentInstructionsModal = dynamic(() => import('@/components/web3/PaymentInstructionsModal'));
@@ -34,15 +37,15 @@ const LeaveReviewModal = dynamic(() => import('@/components/modals/LeaveReviewMo
 const FundsReleasedModal = dynamic(() => import('@/components/modals/FundsReleasedModal'));
 const DisputeExplanationModal = dynamic(() => import('@/components/modals/DisputeExplanationModal'));
 
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
-
 const TradesPage = () => {
     const router = useRouter();
     const { addNotification } = useNotification();
-    const { address, isInitializing, isAuthenticating } = useWeb3();
+    const { address, isInitializing, isAuthenticating, chainId } = useWeb3();
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
     const { writeContractAsync, isPending, reset } = useWriteContract();
     
     // State Management (copied from your file)
@@ -65,6 +68,7 @@ const TradesPage = () => {
     const [isReleasedModalOpen, setIsReleasedModalOpen] = useState(false);
     const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
     const [disputeTrade, setDisputeTrade] = useState<Trade | null>(null);
+    const [isScreenshotRequestModalOpen, setIsScreenshotRequestModalOpen] = useState(false);
     
     // This ref helps us track the previous state of the trades
     const previousBuyTrades = useRef<Trade[]>([]);
@@ -123,6 +127,7 @@ const TradesPage = () => {
                 rating: rating,
                 comment: comment,
                 createdAt: serverTimestamp(),
+                chainId: chainId ?? DEFAULT_CHAIN_ID,
             });
             await updateDoc(doc(db, "trades", tradeToReview.id), { reviewLeft: true });
             setNotification({ isOpen: true, title: "Success", message: "Your review has been submitted! Thank you." });
@@ -172,7 +177,7 @@ const TradesPage = () => {
                 args: [BigInt(trade.onChainId)],
             });
             await waitForTransactionReceipt(config, { hash });
-            await updateDoc(doc(db, "trades", trade.id), { status: 'CANCELED', cancellationTxHash: hash });
+            await updateDoc(doc(db, "trades", trade.id), { status: 'CANCELED', cancellationTxHash: hash, chainId: chainId ?? DEFAULT_CHAIN_ID });
             setNotification({ 
                 isOpen: true, 
                 title: "Trade Canceled", 
@@ -246,7 +251,7 @@ const TradesPage = () => {
 
             // 1. Update the trade status
             const tradeRef = doc(db, "trades", trade.id);
-            batch.update(tradeRef, { status: 'RELEASED', releaseTxHash: hash });
+            batch.update(tradeRef, { status: 'RELEASED', releaseTxHash: hash, chainId: chainId ?? DEFAULT_CHAIN_ID });
 
             // 2. Check the parent order's status from the blockchain
             const onChainOrder = await readContract(config, {
@@ -271,6 +276,58 @@ const TradesPage = () => {
         } finally {
             setProcessingTradeId(null);
             reset();
+        }
+    };
+
+    const handleRequestScreenshot = async (reason: string, deadlineMinutes: number) => {
+        if (!activeTrade) return;
+        setProcessingTradeId(activeTrade.id);
+        try {
+            const deadline = new Date();
+            deadline.setMinutes(deadline.getMinutes() + deadlineMinutes);
+            
+            await updateDoc(doc(db, "trades", activeTrade.id), {
+                status: 'REQUESTING_SCREENSHOT',
+                screenshotRequestedAt: serverTimestamp(),
+                screenshotRequestDeadline: deadline,
+                screenshotRequestReason: reason,
+                screenshotRequestedBy: address,
+            });
+            
+            setNotification({
+                isOpen: true,
+                title: "Screenshot Requested",
+                message: `The buyer has ${deadlineMinutes} minutes to upload a new screenshot.`
+            });
+            setIsScreenshotRequestModalOpen(false);
+        } catch (error: any) {
+            setNotification({ isOpen: true, title: "Action Failed", message: error.shortMessage || "Could not request screenshot." });
+        } finally {
+            setProcessingTradeId(null);
+        }
+    };
+
+    const handleNewScreenshotUploaded = async (trade: Trade) => {
+        setProcessingTradeId(trade.id);
+        try {
+            // Only update Firestore - don't call smart contract since it already has Fiat_Sent status
+            await updateDoc(doc(db, "trades", trade.id), {
+                status: 'FIAT_PAID',
+                screenshotRequestReason: null,
+                screenshotRequestDeadline: null,
+                screenshotRequestedAt: null,
+                screenshotRequestedBy: null,
+            });
+            
+            setNotification({
+                isOpen: true,
+                title: "Screenshot Updated",
+                message: "Your new screenshot has been uploaded and the seller has been notified."
+            });
+        } catch (error: any) {
+            setNotification({ isOpen: true, title: "Action Failed", message: error.shortMessage || "Could not update screenshot." });
+        } finally {
+            setProcessingTradeId(null);
         }
     };
     
@@ -307,7 +364,7 @@ const TradesPage = () => {
             return;
         }
 
-        const activeStatuses = ['LOCKED', 'FIAT_PAID', 'DISPUTED'];
+        const activeStatuses = ['LOCKED', 'FIAT_PAID', 'DISPUTED', 'REQUESTING_SCREENSHOT'];
         const completedStatuses = ['RELEASED', 'CANCELED'];
 
         const createQuery = (field: 'buyer' | 'seller', statuses: string[]) => {
@@ -363,6 +420,9 @@ const TradesPage = () => {
     const currentTradeHistory = tradeHistory.slice(indexOfFirstTrade, indexOfLastTrade);
     const totalPages = Math.ceil(tradeHistory.length / TRADES_PER_PAGE);
 
+    // Filter trade history to only include trades from the current network
+    const filteredTradeHistory = tradeHistory.filter(trade => (trade.chainId ?? DEFAULT_CHAIN_ID) === (chainId ?? DEFAULT_CHAIN_ID));
+
     if (isInitializing || isAuthenticating) {
         return (
             <div className="max-w-4xl mx-auto">
@@ -399,14 +459,18 @@ const TradesPage = () => {
                     const isProcessing = isPending && processingTradeId === trade.id;
                     if (trade.seller === address) {
                         return (
-                            <TradeCard 
+                            <TradeCard
                                 key={trade.id}
                                 trade={trade}
                                 onRelease={handleReleaseFunds}
                                 onDispute={handleDispute}
-                                onViewProof={handleViewProof}
-                                disputeTimeout={buyerPaymentTimeout}
+                                onRequestScreenshot={() => {
+                                    setActiveTrade(trade);
+                                    setIsScreenshotRequestModalOpen(true);
+                                }}
+                                disputeTimeout={sellerReleaseTimeout}
                                 isProcessing={isProcessing}
+                                onViewProof={handleViewProof}
                             />
                         );
                     }
@@ -441,12 +505,13 @@ const TradesPage = () => {
                 ) : (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {currentTradeHistory.map(trade => (
+                            {filteredTradeHistory.map(trade => (
                                 <TradeHistoryCard 
                                     key={trade.id}
                                     trade={trade}
                                     currentUserAddress={address!}
                                     onLeaveReview={handleOpenReviewModal}
+                                    chainId={chainId ?? DEFAULT_CHAIN_ID}
                                 />
                             ))}
                         </div>
@@ -481,6 +546,7 @@ const TradesPage = () => {
                 onUploadProof={handleUploadProof}
                 onDeleteProof={async () => { if (activeTrade) await handleDeleteProof(activeTrade); }}
                 onDispute={async () => { if (activeTrade) await handleDispute(activeTrade); }}
+                onNewScreenshotUploaded={async () => { if (activeTrade) await handleNewScreenshotUploaded(activeTrade); }}
                 isConfirmingFiat={isPending && processingTradeId === activeTrade?.id}
                 releaseTimeout={sellerReleaseTimeout}
             />
@@ -493,6 +559,13 @@ const TradesPage = () => {
                 onConfirm={handleDisputeWithExplanation}
                 trade={disputeTrade}
                 isProcessing={isPending && processingTradeId === disputeTrade?.id}
+            />
+            <ScreenshotRequestModal
+                isOpen={isScreenshotRequestModalOpen}
+                onClose={() => setIsScreenshotRequestModalOpen(false)}
+                trade={activeTrade}
+                onConfirm={handleRequestScreenshot}
+                isProcessing={isPending && processingTradeId === activeTrade?.id}
             />
             <NotificationModal
                 onClose={() => setNotification({ isOpen: false, title: '', message: ''})} 

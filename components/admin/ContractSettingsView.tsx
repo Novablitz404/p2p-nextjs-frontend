@@ -6,14 +6,17 @@ import TimeoutManagement from "./TimeoutManagement";
 import { useReadContracts } from 'wagmi';
 import { useState } from 'react';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
-
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
+import { useWeb3 } from '@/lib/Web3Provider';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 const ContractSettingsView = () => {
+    const { chainId } = useWeb3();
     const [refreshNonce, setRefreshNonce] = useState(0);
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
     const { data, isLoading, refetch } = useReadContracts({
         contracts: [
             { ...P2P_CONTRACT_CONFIG, functionName: 'platformFeeBps' },

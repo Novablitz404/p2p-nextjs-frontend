@@ -15,6 +15,7 @@ interface PaymentInstructionsModalProps {
     onUploadProof: (file: File) => Promise<void>;
     onDeleteProof: () => Promise<void>;
     onDispute: () => Promise<void>;      
+    onNewScreenshotUploaded: () => Promise<void>;
     isConfirmingFiat: boolean; 
     releaseTimeout: number | null; 
 }
@@ -27,7 +28,7 @@ const currencySymbols: { [key: string]: string } = {
 };
 
 
-const PaymentInstructionsModal = ({ isOpen, onClose, activeTrade, onConfirmFiat, onCancelTrade, onUploadProof, onDeleteProof, onDispute, isConfirmingFiat, releaseTimeout }: PaymentInstructionsModalProps) => {
+const PaymentInstructionsModal = ({ isOpen, onClose, activeTrade, onConfirmFiat, onCancelTrade, onUploadProof, onDeleteProof, onDispute, onNewScreenshotUploaded, isConfirmingFiat, releaseTimeout }: PaymentInstructionsModalProps) => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isDisputable, setIsDisputable] = useState(false);
@@ -139,6 +140,40 @@ const PaymentInstructionsModal = ({ isOpen, onClose, activeTrade, onConfirmFiat,
                     )}
                 </div>
             )}
+
+            {activeTrade.status === 'REQUESTING_SCREENSHOT' && (
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mb-3">
+                        <h3 className="text-base font-bold text-orange-400 mb-1">New Screenshot Required</h3>
+                        <p className="text-sm text-gray-300 mb-2">
+                            {activeTrade.screenshotRequestReason || 'The seller has requested a new screenshot of your payment proof.'}
+                        </p>
+                        {activeTrade.screenshotRequestDeadline && (
+                            <p className="text-xs text-orange-300">
+                                Deadline: {new Date(activeTrade.screenshotRequestDeadline.seconds * 1000).toLocaleString()}
+                            </p>
+                        )}
+                    </div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Upload New Proof of Payment</label>
+                    {activeTrade.proofOfPaymentURL ? (
+                        <div className="flex gap-2">
+                            <a href={activeTrade.proofOfPaymentURL} target="_blank" rel="noopener noreferrer" className="w-full text-center px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-sm font-semibold">
+                                View Current Screenshot
+                            </a>
+                            <button onClick={onDeleteProof} className="w-full px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-semibold">
+                                Delete & Re-upload
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex gap-2">
+                            <input id="file-upload-input" type="file" onChange={handleFileChange} accept="image/png, image/jpeg, image/gif" className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-300 hover:file:bg-emerald-500/20"/>
+                            <button onClick={handleUploadClick} disabled={!selectedFile || isUploading} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 flex-shrink-0">
+                                {isUploading ? <Spinner/> : "Upload"}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
            
             <div className="mt-6 flex flex-col space-y-3">
                 {activeTrade.status === 'LOCKED' && (
@@ -170,6 +205,27 @@ const PaymentInstructionsModal = ({ isOpen, onClose, activeTrade, onConfirmFiat,
                             {isDisputable ? 'Raise a Dispute' : `Dispute available in: ${countdown}`}
                         </button>
                     </div>
+                )}
+
+                {activeTrade.status === 'REQUESTING_SCREENSHOT' && (
+                    <>
+                        <button 
+                            onClick={async () => {
+                                // Don't call onConfirmFiat since smart contract already has Fiat_Sent status
+                                // Just update Firestore to reflect the new screenshot was uploaded
+                                if (activeTrade) {
+                                    await onNewScreenshotUploaded();
+                                }
+                            }} 
+                            disabled={!activeTrade.proofOfPaymentURL} 
+                            className="w-full px-6 py-3 rounded-lg bg-orange-600 hover:bg-orange-700 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                        >
+                            New Screenshot Uploaded
+                        </button>
+                        <button onClick={onCancelTrade} className="w-full py-2 rounded-lg text-sm text-gray-400 hover:bg-slate-700">
+                            Cancel Trade
+                        </button>
+                    </>
                 )}
             </div>
         </Modal>

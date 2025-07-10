@@ -17,7 +17,7 @@ import {
   useReadContracts,
   Connector,
 } from 'wagmi';
-import { P2P_ESCROW_CONTRACT_ADDRESS } from '@/constants';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 import { P2PEscrowABI } from '@/abis/P2PEscrow'; // Make sure you have this ABI file
 import { auth, db } from './firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -63,8 +63,9 @@ export const Web3Provider = ({ children }: { children: ReactNode }) => {
   const { switchChain } = useSwitchChain();
   const { signMessageAsync } = useSignMessage();
 
+  const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
   const p2pEscrowContract = {
-    address: P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
+    address: contractAddress as `0x${string}`,
     abi: P2PEscrowABI,
   };
 

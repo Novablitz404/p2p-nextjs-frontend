@@ -23,6 +23,7 @@ import Spinner from '../ui/Spinner';
 import { ChevronDown, Settings } from 'lucide-react';
 import { useNotifications } from '@/lib/NotificationProvider';
 import { CURRENCY_PAYMENT_METHODS } from '@/constants';
+import { CONTRACT_ADDRESSES, SUPPORTED_NETWORKS } from '@/constants';
 
 const SellerSuggestionModal = dynamic(() => import('../web3/SellerSuggestionModal'));
 const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
@@ -30,11 +31,6 @@ const PaymentMethodSelectorModal = dynamic(() => import('../ui/PaymentMethodSele
 const CurrencySelectorModal = dynamic(() => import('../ui/CurrencySelectorModal'));
 const BuyerRiskWarningModal = dynamic(() => import('../modals/BuyerRiskWarningModal'));
 const BuyerSettingsModal = dynamic(() => import('../modals/BuyerSettingsModal'));
-
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
 
 interface BuyerDashboardProps {
     userId: string;
@@ -58,6 +54,15 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     const router = useRouter();
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
+
+    const { chainId } = useWeb3();
+    const currentNetwork = SUPPORTED_NETWORKS.find(n => n.chainId === chainId) ?? SUPPORTED_NETWORKS[0];
+    const nativeToken = currentNetwork.nativeCurrency;
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? 84532];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
 
     // State Management
     const [cryptoAmount, setCryptoAmount] = useState('');
@@ -320,8 +325,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                 }
 
                 if (amountToFillInWei > 0n) {
-                    const amountFound = formatUnits(buyAmountInWei - amountToFillInWei, selectedToken.decimals);
-                    addNotification({ type: 'error', message: `Insufficient Liquidity: Could only find ${parseFloat(amountFound).toFixed(2)} assets.` });
+                    addNotification({ type: 'error', message: 'No match found: Insufficient platform liquidity' });
                     setIsMatching(false); 
                     return;
                 }

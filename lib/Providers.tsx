@@ -9,6 +9,7 @@ import { config } from './config';
 import { Web3Provider } from './Web3Provider'; // Your existing provider
 import { NotificationProvider } from './NotificationProvider';
 import { ToastProvider } from '../components/ui/ToastProvider';
+import { Toaster } from 'react-hot-toast';
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <NotificationProvider>
             <ToastProvider>
               {children}
+              <Toaster position="bottom-center" toastOptions={{ duration: 4000, style: { background: '#1e293b', color: '#fff', fontSize: '1rem' } }} />
             </ToastProvider>
           </NotificationProvider>
         </Web3Provider>

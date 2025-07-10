@@ -1,6 +1,5 @@
 'use client';
 
-import { useWeb3 } from '@/lib/Web3Provider';
 import { Copy, Star, X, LogOut, TrendingUp, XCircle, Check, Settings, Eye, EyeOff, Plus, Minus, DollarSign } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { useReadContracts, useBalance } from 'wagmi';
@@ -9,6 +8,8 @@ import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { erc20Abi } from 'viem';
 import Spinner from '../ui/Spinner';
 import TokenLogo from '../ui/TokenLogo';
+import { CONTRACT_ADDRESSES, SUPPORTED_NETWORKS } from '@/constants';
+import { useWeb3 } from '@/lib/Web3Provider';
 
 interface WalletSidebarProps {
     isOpen: boolean;
@@ -27,11 +28,6 @@ interface TokenPrice {
     [symbol: string]: number;
 }
 
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
-
 const SUPPORTED_CURRENCIES = [
     { code: 'USD', symbol: '$', name: 'US Dollar' },
     { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -43,7 +39,15 @@ const SUPPORTED_CURRENCIES = [
 ];
 
 const WalletSidebar = ({ isOpen, onClose }: WalletSidebarProps) => {
-    const { address, userProfile, disconnectWallet, isAuthenticating } = useWeb3();
+    const { address, userProfile, disconnectWallet, isAuthenticating, chainId } = useWeb3();
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? 84532];
+    const currentNetwork = SUPPORTED_NETWORKS.find(n => n.chainId === chainId) ?? SUPPORTED_NETWORKS[0];
+    const nativeToken = currentNetwork.nativeCurrency;
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
+
     const [balances, setBalances] = useState<TokenBalance[]>([]);
     const [isCopied, setIsCopied] = useState(false);
     const [showTokenSelector, setShowTokenSelector] = useState(false);

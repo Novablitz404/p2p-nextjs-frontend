@@ -15,51 +15,18 @@ import { P2PEscrowABI } from '@/abis/P2PEscrow'; // Make sure this is the Typesc
 import { erc20Abi } from 'viem';
 import { config } from '@/lib/config';
 import { parseUnits } from 'viem';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 // Component Imports
 import OrderCard from '@/components/web3/OrderCard';
 import Spinner from '@/components/ui/Spinner';
 import NotificationModal from '@/components/ui/NotificationModal';
 import ConnectWalletMessage from '@/components/ui/ConnectWalletMessage';
-
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
-
-// Skeleton loader for order cards
-const OrderCardSkeleton = () => (
-    <div className="relative bg-slate-800/60 backdrop-blur-xl rounded-2xl border border-slate-700/40 shadow-xl p-6 flex flex-col gap-4 animate-pulse">
-        <div className="flex justify-between items-start mb-2">
-            <div>
-                <div className="h-5 w-32 bg-slate-700/60 rounded mb-2" />
-                <div className="h-4 w-20 bg-slate-700/50 rounded" />
-            </div>
-            <div className="h-6 w-20 bg-slate-700/60 rounded-full" />
-        </div>
-        <div className="flex gap-2 mb-1">
-            <div className="h-5 w-16 bg-slate-700/50 rounded-full" />
-            <div className="h-5 w-12 bg-slate-700/50 rounded-full" />
-        </div>
-        <div className="mb-2">
-            <div className="w-full bg-slate-700/40 rounded-full h-2 overflow-hidden">
-                <div className="bg-slate-700/80 h-2 rounded-full w-1/2" />
-            </div>
-            <div className="flex justify-between items-center text-xs text-gray-400 mt-1">
-                <div className="h-3 w-16 bg-slate-700/40 rounded" />
-                <div className="h-3 w-16 bg-slate-700/40 rounded" />
-            </div>
-        </div>
-        <div className="pt-3 border-t border-slate-700/30 min-h-[40px] flex items-center justify-center gap-2">
-            <div className="h-10 w-24 bg-slate-700/40 rounded-xl" />
-            <div className="h-10 w-24 bg-slate-700/40 rounded-xl" />
-        </div>
-    </div>
-);
+import TradeCardSkeleton from '@/components/ui/TradeCardSkeleton';
 
 const OrdersPage = () => {
     // State Management
-    const { address, isInitializing, isAuthenticating } = useWeb3();
+    const { address, isInitializing, isAuthenticating, chainId } = useWeb3();
     const [myOrders, setMyOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
@@ -175,13 +142,19 @@ const OrdersPage = () => {
         return <ConnectWalletMessage />;
     }
 
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
+
     return (
         <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-8">My Sell Orders</h1>
             {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {Array.from({ length: ORDERS_PER_PAGE }).map((_, i) => (
-                        <OrderCardSkeleton key={i} />
+                        <TradeCardSkeleton key={i} />
                     ))}
                 </div>
             ) : myOrders.length === 0 ? (

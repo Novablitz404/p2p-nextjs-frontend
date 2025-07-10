@@ -235,15 +235,6 @@ const SellerSuggestionModal = ({
         }).format(value);
     };
 
-    const getRankingBadge = (index: number) => {
-        const badges = [
-            { bg: 'bg-yellow-500', text: 'text-yellow-900', icon: '🥇' },
-            { bg: 'bg-gray-400', text: 'text-gray-900', icon: '🥈' },
-            { bg: 'bg-orange-500', text: 'text-orange-900', icon: '🥉' }
-        ];
-        return badges[index] || { bg: 'bg-slate-500', text: 'text-slate-900', icon: '#' };
-    };
-
     if (!tradePlan) return null;
 
     const { tokenSymbol, fiatCurrency } = tradePlan.matches[0];
@@ -252,10 +243,10 @@ const SellerSuggestionModal = ({
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={isBundledMode ? "Choose Your Seller Bundle" : "Choose Your Seller"}>
-            <div className="text-center mb-6">
-                <p className="text-gray-300 mb-2">You want to buy</p>
-                <p className="text-3xl font-bold text-white mb-2">{(tradePlan.totalCrypto || 0)} {tokenSymbol}</p>
-                <p className="text-sm text-gray-400">
+            <div className="text-center mb-4">
+                <p className="text-gray-300 mb-1">You want to buy</p>
+                <p className="text-2xl font-bold text-white mb-1">{(tradePlan.totalCrypto || 0)} {tokenSymbol}</p>
+                <p className="text-xs text-gray-400">
                     {isBundledMode 
                         ? "Your request will be fulfilled by combining multiple sellers"
                         : "Select your preferred seller from our top recommendations"
@@ -264,22 +255,20 @@ const SellerSuggestionModal = ({
             </div>
 
             {/* Seller Suggestions */}
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 mb-4 max-h-56 overflow-y-auto pr-1">
                 {sellerSuggestions.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-lg">
-                        <p className="text-gray-400 mb-2">No sellers found that can fulfill your request</p>
-                        <p className="text-sm text-gray-500">Try reducing your amount or check back later for more liquidity</p>
+                    <div className="text-center py-6 border-2 border-dashed border-slate-700 rounded-lg">
+                        <p className="text-gray-400 mb-1">No sellers found that can fulfill your request</p>
+                        <p className="text-xs text-gray-500">Try reducing your amount or check back later for more liquidity</p>
                     </div>
                 ) : (
                     sellerSuggestions.map((seller, index) => {
-                        const badge = getRankingBadge(index);
                         const isSelected = selectedSeller?.sellerId === seller.sellerId;
                         const isBundledSeller = seller.sellerId === 'BUNDLED_SELLERS';
-                        
                         return (
                             <div
                                 key={seller.sellerId}
-                                className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                                className={`relative p-3 rounded-lg border-2 transition-all cursor-pointer ${
                                     isSelected 
                                         ? 'border-emerald-500 bg-emerald-500/10' 
                                         : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
@@ -287,59 +276,53 @@ const SellerSuggestionModal = ({
                                 onClick={() => handleSellerSelect(seller)}
                             >
                                 <div className="flex items-center justify-between gap-2">
-                                    {/* Left: Badge + Seller Info */}
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        {/* Ranking Badge */}
-                                        <div className={`w-8 h-8 ${badge.bg} rounded-full flex items-center justify-center text-sm font-bold ${badge.text}`}>
-                                            {isBundledSeller ? '🔗' : badge.icon}
+                                    {/* Left: Seller Info (no badge) */}
+                                    <div className="flex flex-col min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5 min-w-0">
+                                            <span className="font-semibold text-white truncate text-sm">
+                                                {isBundledSeller 
+                                                    ? 'Multiple Sellers (Bundled)'
+                                                    : `${seller.sellerId.substring(0, 6)}...${seller.sellerId.substring(seller.sellerId.length - 4)}`
+                                                }
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <Star className="w-4 h-4 text-yellow-400" />
+                                                <span className="text-xs text-white">{(seller.rating || 0).toFixed(1)}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col min-w-0">
-                                            <div className="flex items-center gap-2 mb-1 min-w-0">
-                                                <span className="font-semibold text-white truncate">
-                                                    {isBundledSeller 
-                                                        ? 'Multiple Sellers (Bundled)'
-                                                        : `${seller.sellerId.substring(0, 6)}...${seller.sellerId.substring(seller.sellerId.length - 4)}`
-                                                    }
+                                        {/* Metrics Row: Inline, compact */}
+                                        <div className="flex flex-row flex-wrap gap-x-4 gap-y-0.5 text-xs mt-0.5">
+                                            <div className="flex items-center gap-1 min-w-0">
+                                                <TrendingUp className="w-3 h-3 text-emerald-400" />
+                                                <span className="text-gray-300 whitespace-nowrap">{seller.tradeCount || 0} trades</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 min-w-0">
+                                                <Shield className="w-3 h-3 text-blue-400" />
+                                                <span className="text-gray-300 whitespace-nowrap">{(seller.cancellationRate || 0).toFixed(1)}% cancel</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 min-w-0">
+                                                <Clock className="w-3 h-3 text-emerald-400" />
+                                                <span className="text-gray-300 whitespace-nowrap">
+                                                    {seller.averageReleaseTime
+                                                        ? `${Math.round(seller.averageReleaseTime / 60)}m avg. release`
+                                                        : 'N/A'}
                                                 </span>
-                                                <div className="flex items-center gap-1">
-                                                    <Star className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm text-white">{(seller.rating || 0).toFixed(1)}</span>
-                                                </div>
                                             </div>
-                                            {/* Metrics Row: Flex, not grid */}
-                                            <div className="flex flex-row gap-6 text-sm mt-1">
-                                                <div className="flex items-center gap-1 min-w-0">
-                                                    <TrendingUp className="w-4 h-4 text-emerald-400" />
-                                                    <span className="text-gray-300 whitespace-nowrap">{seller.tradeCount || 0} trades</span>
-                                                </div>
-                                                <div className="flex items-center gap-1 min-w-0">
-                                                    <Shield className="w-4 h-4 text-blue-400" />
-                                                    <span className="text-gray-300 whitespace-nowrap">{(seller.cancellationRate || 0).toFixed(1)}% cancel</span>
-                                                </div>
-                                                <div className="flex items-center gap-1 min-w-0">
-                                                    <Clock className="w-4 h-4 text-emerald-400" />
-                                                    <span className="text-gray-300 whitespace-nowrap">
-                                                        {seller.averageReleaseTime
-                                                            ? `${Math.floor(seller.averageReleaseTime / 60)}m ${seller.averageReleaseTime % 60}s avg. release`
-                                                            : 'N/A'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {/* Show bundled seller info */}
-                                            {isBundledSeller && (
-                                                <div className="mt-2 p-2 bg-slate-800/50 rounded-lg border border-slate-600">
-                                                    <p className="text-xs text-emerald-400 font-medium mb-1">🔗 Bundled from multiple sellers</p>
-                                                    <p className="text-xs text-gray-400">
-                                                        Your request will be fulfilled by combining orders from {seller.matchedOrders.length} different sellers
-                                                    </p>
-                                                </div>
-                                            )}
                                         </div>
+                                        {/* Show bundled seller info */}
+                                        {isBundledSeller && (
+                                            <div className="mt-1 p-1 bg-slate-800/50 rounded border border-slate-600">
+                                                <p className="text-xs text-emerald-400 font-medium mb-0.5">🔗 Bundled from multiple sellers</p>
+                                                <p className="text-xs text-gray-400">
+                                                    Your request will be fulfilled by combining orders from {seller.matchedOrders.length} different sellers
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                     {/* Right: Selection Indicator */}
                                     {isSelected && (
                                         <div className="flex items-center justify-center ml-2">
-                                            <Check className="w-6 h-6 text-emerald-500" />
+                                            <Check className="w-5 h-5 text-emerald-500" />
                                         </div>
                                     )}
                                 </div>
@@ -351,41 +334,37 @@ const SellerSuggestionModal = ({
 
             {/* Selected Seller Details */}
             {selectedSellerWithLivePrices && (
-                <div className="bg-slate-900 rounded-lg p-4 border border-slate-700 mb-6">
-                    <h4 className="text-sm font-semibold text-gray-400 mb-3">Trade Summary</h4>
-                    
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center text-gray-300">
+                <div className="bg-slate-900 rounded-lg p-3 border border-slate-700 mb-4">
+                    <h4 className="text-xs font-semibold text-gray-400 mb-2">Trade Summary</h4>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center text-gray-300 text-xs">
                             <span>Total Amount</span>
                             <span className="font-semibold text-white">
                                 {(selectedSellerWithLivePrices.totalAmount || 0).toFixed(6)} {tokenSymbol}
                             </span>
                         </div>
-                        
-                        <div className="flex justify-between items-center text-gray-300">
+                        <div className="flex justify-between items-center text-gray-300 text-xs">
                             <div className="flex items-center gap-1.5">
                                 <span>Estimated Cost</span>
                                 <Tooltip text="Final price will be locked when you confirm">
-                                    <Clock className="h-4 w-4 text-gray-500 cursor-help" />
+                                    <Clock className="h-3 w-3 text-gray-500 cursor-help" />
                                 </Tooltip>
                             </div>
-                            <span className="font-semibold text-white h-6 flex items-center">
+                            <span className="font-semibold text-white h-5 flex items-center">
                                 {isPriceLoading ? <Spinner /> : `~ ${formatCurrency(selectedSellerWithLivePrices.totalFiatCost || 0)}`}
                             </span>
                         </div>
-                        
-                        <div className="flex justify-between items-center text-gray-300">
+                        <div className="flex justify-between items-center text-gray-300 text-xs">
                             <span>Average Markup</span>
                             <span className="font-semibold text-white">
                                 +{(selectedSellerWithLivePrices.averageMarkup || 0).toFixed(2)}%
                             </span>
                         </div>
-
                         {/* Show bundled seller details */}
                         {selectedSellerWithLivePrices.sellerId === 'BUNDLED_SELLERS' && (
                             <>
-                                <div className="border-t border-slate-700 pt-3 mt-3">
-                                    <div className="flex justify-between items-center text-gray-300 mb-2">
+                                <div className="border-t border-slate-700 pt-2 mt-2">
+                                    <div className="flex justify-between items-center text-gray-300 text-xs mb-1">
                                         <span>Number of Sellers</span>
                                         <span className="font-semibold text-white">
                                             {selectedSellerWithLivePrices.matchedOrders.length}
@@ -401,26 +380,9 @@ const SellerSuggestionModal = ({
                 </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3">
-                <button 
-                    onClick={onClose} 
-                    className="px-6 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-500 font-semibold transition-colors"
-                >
-                    Cancel
-                </button>
-                <button 
-                    onClick={handleConfirm} 
-                    disabled={!selectedSeller || isPriceLoading || !liveMarketPrice || sellerSuggestions.length === 0}
-                    className="px-6 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 transition-colors font-bold flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {sellerSuggestions.length === 0 
-                        ? 'No Sellers Available' 
-                        : selectedSeller 
-                            ? (selectedSeller.sellerId === 'BUNDLED_SELLERS' ? 'Confirm Bundle & Lock Price' : 'Confirm & Lock Price')
-                            : 'Select a Seller'
-                    }
-                </button>
+            <div className="flex justify-between gap-2 mt-2">
+                <button onClick={onClose} className="w-1/2 py-2 rounded-lg bg-slate-700 text-white font-semibold text-sm hover:bg-slate-600 transition-all">Cancel</button>
+                <button onClick={handleConfirm} disabled={!selectedSellerWithLivePrices} className="w-1/2 py-2 rounded-lg bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Confirm & Lock Price</button>
             </div>
         </Modal>
     );

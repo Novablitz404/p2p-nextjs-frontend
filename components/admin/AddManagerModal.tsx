@@ -11,6 +11,7 @@ import { config } from '@/lib/config';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { useToastHelpers } from '@/components/ui/ToastProvider';
 import Modal from '../ui/Modal';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 
 interface AddManagerModalProps {
     isOpen: boolean;
@@ -18,17 +19,18 @@ interface AddManagerModalProps {
     onSuccess: () => void;
 }
 
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
-};
-
 const AddManagerModal = ({ isOpen, onClose, onSuccess }: AddManagerModalProps) => {
-    const { address } = useWeb3();
+    const { address, chainId } = useWeb3();
     const { success, error: showError } = useToastHelpers();
     const [managerAddress, setManagerAddress] = useState('');
 
     const { writeContractAsync, isPending, reset } = useWriteContract();
+
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
 
     const handleAdd = async () => {
         if (!isAddress(managerAddress)) {

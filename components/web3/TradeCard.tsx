@@ -8,14 +8,17 @@ interface TradeCardProps {
     trade: Trade;
     onRelease: (trade: Trade) => void;
     onDispute: (trade: Trade) => void;
+    onRequestScreenshot?: (trade: Trade) => void;
     disputeTimeout: number | null;
     isProcessing: boolean;
     onViewProof?: (url: string) => void;
 }
 
-const TradeCard = ({ trade, onRelease, onDispute, disputeTimeout, isProcessing, onViewProof }: TradeCardProps) => {
+const TradeCard = ({ trade, onRelease, onDispute, onRequestScreenshot, disputeTimeout, isProcessing, onViewProof }: TradeCardProps) => {
     const [isDisputable, setIsDisputable] = useState(false);
     const [countdown, setCountdown] = useState('');
+    const [isScreenshotDeadlineElapsed, setIsScreenshotDeadlineElapsed] = useState(false);
+    const [screenshotCountdown, setScreenshotCountdown] = useState('');
 
     const trackingCode = trade.creationTxHash ? 
         `${trade.creationTxHash.slice(-4).toUpperCase()}-${trade.onChainId}` : 
@@ -47,9 +50,37 @@ const TradeCard = ({ trade, onRelease, onDispute, disputeTimeout, isProcessing, 
         return () => clearInterval(intervalId);
     }, [trade.status, trade.createdAt, disputeTimeout]);
 
+    // Handle screenshot request deadline
+    useEffect(() => {
+        if (trade.status !== 'REQUESTING_SCREENSHOT' || !trade.screenshotRequestDeadline) {
+            setIsScreenshotDeadlineElapsed(false);
+            return;
+        }
+
+        const deadline = trade.screenshotRequestDeadline.seconds * 1000;
+        
+        const intervalId = setInterval(() => {
+            const timeLeft = deadline - Date.now();
+
+            if (timeLeft <= 0) {
+                setIsScreenshotDeadlineElapsed(true);
+                setScreenshotCountdown("Deadline elapsed");
+                clearInterval(intervalId);
+            } else {
+                setIsScreenshotDeadlineElapsed(false);
+                const minutes = Math.floor((timeLeft / 1000 / 60) % 60);
+                const seconds = Math.floor((timeLeft / 1000) % 60);
+                setScreenshotCountdown(`${minutes}m ${seconds}s`);
+            }
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [trade.status, trade.screenshotRequestDeadline]);
+
     const statusInfo = {
         LOCKED: { text: 'Waiting for Payment', pill: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' },
         FIAT_PAID: { text: 'Payment Confirmed', pill: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' },
+        REQUESTING_SCREENSHOT: { text: 'Screenshot Requested', pill: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' },
     };
 
     const currentStatus = statusInfo[trade.status as keyof typeof statusInfo] || { text: trade.status, pill: 'bg-gray-700' };
@@ -94,6 +125,33 @@ const TradeCard = ({ trade, onRelease, onDispute, disputeTimeout, isProcessing, 
                         className="w-full text-sm font-semibold py-2 rounded-xl bg-slate-700/80 text-white hover:bg-emerald-500/20 hover:text-emerald-300 active:scale-95 transition-all duration-150 shadow disabled:opacity-50 flex justify-center items-center"
                     >
                         View Screenshot
+                    </button>
+                )}
+                {trade.status === 'FIAT_PAID' && onRequestScreenshot && (
+                    <button
+                        onClick={() => onRequestScreenshot(trade)}
+                        disabled={isProcessing}
+                        className="w-full text-sm font-semibold py-2 rounded-xl bg-yellow-600/80 text-yellow-100 hover:bg-yellow-500/80 active:scale-95 transition-all duration-150 shadow disabled:opacity-50 flex justify-center items-center"
+                    >
+                        Request New Screenshot
+                    </button>
+                )}
+                {trade.status === 'REQUESTING_SCREENSHOT' && onRequestScreenshot && !isScreenshotDeadlineElapsed && (
+                    <button
+                        onClick={() => onRequestScreenshot(trade)}
+                        disabled={isProcessing}
+                        className="w-full text-sm font-semibold py-2 rounded-xl bg-yellow-600/80 text-yellow-100 hover:bg-yellow-500/80 active:scale-95 transition-all duration-150 shadow disabled:opacity-50 flex justify-center items-center"
+                    >
+                        Request New Screenshot ({screenshotCountdown})
+                    </button>
+                )}
+                {trade.status === 'REQUESTING_SCREENSHOT' && isScreenshotDeadlineElapsed && (
+                    <button
+                        onClick={() => onDispute(trade)}
+                        disabled={isProcessing}
+                        className="w-full text-sm font-bold py-2 rounded-xl bg-red-600/80 text-red-100 hover:bg-red-500 active:scale-95 transition-all duration-150 shadow-lg disabled:opacity-50 flex justify-center items-center"
+                    >
+                        {isProcessing ? <Spinner /> : "Dispute"}
                     </button>
                 )}
                 {trade.status === 'FIAT_PAID' && (

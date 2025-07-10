@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
+import { CONTRACT_ADDRESSES, SUPPORTED_NETWORKS } from '@/constants';
 import { Token } from '@/types';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -27,35 +28,24 @@ const SellerDashboard = dynamic(() => import('./SellerDashboard'), {
     ssr: false
 });
 
-const P2P_CONTRACT_CONFIG = {
-    address: process.env.NEXT_PUBLIC_P2P_ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-    abi: P2PEscrowABI,
+type TabButtonProps = {
+  isActive: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  activeColor: string;
+  inactiveColor: string;
+  icon: React.ComponentType<any>;
 };
 
-// Memoized tab button component to prevent unnecessary re-renders
-const TabButton = React.memo(({ 
-    isActive, 
-    onClick, 
-    children, 
-    activeColor, 
-    inactiveColor,
-    icon: Icon
-}: {
-    isActive: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-    activeColor: string;
-    inactiveColor: string;
-    icon: React.ComponentType<any>;
-}) => (
-    <button
-        className={`flex items-center gap-2 px-6 py-2 rounded-full font-semibold text-base transition-all duration-200 focus:outline-none
-            ${isActive ? `${activeColor} shadow-md` : 'hover:bg-slate-700/40 text-gray-400'}`}
-        onClick={onClick}
-    >
-        <Icon size={20} className={isActive ? activeColor.replace('text-', 'text-').replace('bg-', 'text-') : 'text-gray-500'} />
-        {children}
-    </button>
+const TabButton: React.FC<TabButtonProps> = React.memo(({ isActive, onClick, children, activeColor, inactiveColor, icon: Icon }) => (
+  <button
+    className={`flex items-center gap-2 px-6 py-2 rounded-full font-semibold text-base transition-all duration-200 focus:outline-none
+      ${isActive ? `${activeColor} shadow-md` : 'hover:bg-slate-700/40 text-gray-400'}`}
+    onClick={onClick}
+  >
+    <Icon size={20} className={isActive ? activeColor.replace('bg-', 'text-') : 'text-gray-500'} />
+    {children}
+  </button>
 ));
 
 const Marketplace = () => {
@@ -66,6 +56,15 @@ const Marketplace = () => {
     const [isLoadingFirestore, setIsLoadingFirestore] = useState(true);
     const [hasInitialized, setHasInitialized] = useState(false);
 
+    const { chainId } = useWeb3();
+    const currentNetwork = SUPPORTED_NETWORKS.find(n => n.chainId === chainId) ?? SUPPORTED_NETWORKS[0];
+    const nativeToken = currentNetwork.nativeCurrency;
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? 84532];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
+    
     // Memoize contract settings to prevent unnecessary re-renders
     const { data: contractSettings, isLoading: isLoadingContractSettings } = useReadContracts({
         contracts: [
@@ -107,8 +106,8 @@ const Marketplace = () => {
 
     // Memoize approved tokens list to prevent unnecessary re-computations
     const approvedTokensList = useMemo(() => {
-        const nativeToken: Token = { address: zeroAddress, symbol: 'ETH', decimals: 18 };
-        if (!tokenDetails) return [nativeToken];
+        const nativeTokenObj: Token = { address: zeroAddress, symbol: nativeToken.symbol, decimals: nativeToken.decimals };
+        if (!tokenDetails) return [nativeTokenObj];
 
         const erc20Tokens: Token[] = [];
         for (let i = 0; i < tokenDetails.length; i += 2) {
@@ -124,8 +123,8 @@ const Marketplace = () => {
                 });
             }
         }
-        return [nativeToken, ...erc20Tokens];
-    }, [tokenDetails, tokenDetailContracts]);
+        return [nativeTokenObj, ...erc20Tokens];
+    }, [tokenDetails, tokenDetailContracts, nativeToken]);
 
     // Memoize Firestore data fetching to prevent unnecessary calls
     const fetchFirestoreData = useCallback(async () => {
