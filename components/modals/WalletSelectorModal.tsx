@@ -63,10 +63,6 @@ const WalletSelectorModal = ({ isOpen, onClose, onConnect, connectors }: WalletS
                                         <Star size={12} className="text-blue-300" />
                                         <span className="text-xs font-semibold text-blue-300">Recommended</span>
                                     </div>
-                                    <div className="flex items-center gap-1 bg-emerald-400/20 px-2 py-1 rounded-full">
-                                        <Zap size={12} className="text-emerald-300" />
-                                        <span className="text-xs font-semibold text-emerald-300">Gasless</span>
-                                    </div>
                                 </div>
                             )}
                         </button>
@@ -74,7 +70,7 @@ const WalletSelectorModal = ({ isOpen, onClose, onConnect, connectors }: WalletS
                 })}
                 
                 <div className="text-center text-xs text-gray-500 mt-4">
-                    <p>💡 <strong>Coinbase Wallet</strong> is recommended for gasless transactions and seamless trading experience.</p>
+                    <p>💡 <strong>Coinbase Wallet</strong> is recommended for a seamless trading experience.</p>
                 </div>
             </div>
         </Modal>

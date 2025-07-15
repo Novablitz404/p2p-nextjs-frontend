@@ -6,11 +6,13 @@ import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getCountFromServer } from 'firebase/firestore';
 import StatCard from '@/components/ui/StatCard';
-import { Gem, Percent, Wallet, Users, CheckCircle, BarChart, XCircle } from 'lucide-react';
+import { Gem, Percent, Wallet, Users, CheckCircle, BarChart, XCircle, Pause, Play } from 'lucide-react';
 import Spinner from '../ui/Spinner';
-import { useReadContracts } from 'wagmi';
+import { useReadContracts, useWriteContract } from 'wagmi';
+import { waitForTransactionReceipt } from 'wagmi/actions';
 import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { zeroAddress } from 'viem';
+import { config } from '@/lib/config';
 import useSWR from 'swr';
 // FIX: Import LineChart and Line components
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -66,6 +68,9 @@ const DashboardView = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isPaused, setIsPaused] = useState<boolean | null>(null);
+
+    const { writeContractAsync, isPending: isPausePending, reset } = useWriteContract();
 
     const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
     const P2P_CONTRACT_CONFIG = {
@@ -78,9 +83,47 @@ const DashboardView = () => {
             { ...P2P_CONTRACT_CONFIG, functionName: 'getApprovedTokens' },
             { ...P2P_CONTRACT_CONFIG, functionName: 'platformFeeBps' },
             { ...P2P_CONTRACT_CONFIG, functionName: 'feeRecipient' },
+            { ...P2P_CONTRACT_CONFIG, functionName: 'paused' },
         ],
         query: { enabled: !isInitializing && !isAuthenticating }
     });
+
+    // Extract pause status from onChainData
+    useEffect(() => {
+        if (onChainData && onChainData[3]?.result !== undefined) {
+            setIsPaused(onChainData[3].result as boolean);
+        }
+    }, [onChainData]);
+
+    const handlePause = async () => {
+        try {
+            const hash = await writeContractAsync({
+                ...P2P_CONTRACT_CONFIG,
+                functionName: 'pause',
+            });
+            await waitForTransactionReceipt(config, { hash });
+            setIsPaused(true);
+        } catch (error: any) {
+            console.error('Failed to pause contract:', error);
+        } finally {
+            reset();
+        }
+    };
+
+    const handleUnpause = async () => {
+        try {
+            const hash = await writeContractAsync({
+                ...P2P_CONTRACT_CONFIG,
+                functionName: 'unpause',
+            });
+            await waitForTransactionReceipt(config, { hash });
+            setIsPaused(false);
+        } catch (error: any) {
+            console.error('Failed to unpause contract:', error);
+        } finally {
+            reset();
+        }
+    };
 
     useEffect(() => {
         if (isInitializing || isAuthenticating) return;
@@ -137,6 +180,41 @@ const DashboardView = () => {
     return (
         <div>
              <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
+             
+             {/* Pause/Unpause Controls */}
+             <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-semibold text-white mb-2">Contract Status</h2>
+                        <p className="text-sm text-gray-400">
+                            {isPaused === null ? 'Loading...' : 
+                             isPaused ? 'Contract is currently paused' : 'Contract is active and running'}
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        {isPaused ? (
+                            <button
+                                onClick={handleUnpause}
+                                disabled={isPausePending}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+                            >
+                                {isPausePending ? <Spinner /> : <Play size={16} />}
+                                {isPausePending ? 'Unpausing...' : 'Unpause Contract'}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handlePause}
+                                disabled={isPausePending}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+                            >
+                                {isPausePending ? <Spinner /> : <Pause size={16} />}
+                                {isPausePending ? 'Pausing...' : 'Pause Contract'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+             </div>
+             
              <div className="mb-6">
                 <TradeActivityChart />
              </div>

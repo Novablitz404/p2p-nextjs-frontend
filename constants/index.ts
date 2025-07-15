@@ -1,4 +1,6 @@
-export const P2P_ESCROW_CONTRACT_ADDRESS = "0xE7222b0CBD56CAb0cebD26Bfec5579d495e0CE11";
+
+// Maximum uint256 value for unlimited token approvals
+export const MAX_UINT256 = 2n ** 256n - 1n;
 
 export interface NetworkConfig {
     chainId: number;

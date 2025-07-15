@@ -15,7 +15,7 @@ import { P2PEscrowABI } from '@/abis/P2PEscrow'; // Make sure this is the Typesc
 import { erc20Abi } from 'viem';
 import { config } from '@/lib/config';
 import { parseUnits } from 'viem';
-import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID, MAX_UINT256 } from '@/constants';
 
 // Component Imports
 import OrderCard from '@/components/web3/OrderCard';
@@ -73,13 +73,13 @@ const OrdersPage = () => {
             const feeAmount = (amountInWei * platformFeeBps) / 10000n;
             const totalAmountToApprove = amountInWei + feeAmount;
 
-            setNotification({ isOpen: true, title: "Action (1/2)", message: "Please approve the token transfer." });
+            setNotification({ isOpen: true, title: "Action (1/2)", message: "Please approve the token transfer with maximum allocation." });
             
             const approveHash = await writeContractAsync({
                 address: order.tokenAddress as `0x${string}`,
                 abi: erc20Abi,
                 functionName: 'approve',
-                args: [P2P_CONTRACT_CONFIG.address, totalAmountToApprove],
+                args: [P2P_CONTRACT_CONFIG.address, MAX_UINT256],
             });
             await waitForTransactionReceipt(config, { hash: approveHash });
 

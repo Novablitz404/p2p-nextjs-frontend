@@ -17,7 +17,7 @@ import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { erc20Abi, keccak256, toBytes } from 'viem'; 
 import { config } from '@/lib/config';
 import { parseUnits, zeroAddress, decodeEventLog, TransactionReceipt } from 'viem';
-import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID, MAX_UINT256 } from '@/constants';
 
 // Component Imports
 import SellerOrderForm from './SellerOrderForm';
@@ -109,10 +109,10 @@ const SellerDashboard = React.memo(({
                     args: [amountInWei], value: totalValueToSend,
                 });
             } else {
-                addNotification({ type: 'info', message: 'Step 1/2: Approving token...' });
+                addNotification({ type: 'info', message: 'Step 1/2: Approving token with maximum allocation...' });
                 const approveHash = await writeContractAsync({
                     address: tokenAddress as `0x${string}`, abi: erc20Abi,
-                    functionName: 'approve', args: [P2P_CONTRACT_CONFIG.address, amountInWei],
+                    functionName: 'approve', args: [P2P_CONTRACT_CONFIG.address, MAX_UINT256],
                 });
                 await waitForTransactionReceipt(config, { hash: approveHash });
     
