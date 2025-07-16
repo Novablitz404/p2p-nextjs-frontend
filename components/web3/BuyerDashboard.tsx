@@ -87,6 +87,27 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] = useState(false);
     const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
 
+    // Minimum buy order value in USD
+    const MIN_BUY_USD = 10;
+    const [usdToLocalRate, setUsdToLocalRate] = useState<number | null>(null);
+    useEffect(() => {
+        const fetchUsdRate = async () => {
+            try {
+                const response = await fetch(`/api/getTokenPrice?symbol=USD&currency=${fiatCurrency}`);
+                if (!response.ok) throw new Error('Failed to fetch USD rate');
+                const data = await response.json();
+                setUsdToLocalRate(data.price);
+            } catch (error) {
+                setUsdToLocalRate(null);
+            }
+        };
+        fetchUsdRate();
+    }, [fiatCurrency]);
+    const minBuyLocal = usdToLocalRate ? MIN_BUY_USD * usdToLocalRate : MIN_BUY_USD;
+    const buyOrderLocalValue = (marketPrice && cryptoAmount) ? parseFloat(cryptoAmount) * marketPrice : 0;
+    const isBelowMinBuy = buyOrderLocalValue > 0 && buyOrderLocalValue < minBuyLocal;
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
     // Memoize selected token to prevent unnecessary re-computations
     const selectedToken = useMemo(() => 
         tokenList.find(t => t.address === selectedTokenAddress), 
@@ -161,7 +182,15 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         setPaymentMethod(method); 
         setIsPaymentMethodModalOpen(false); 
     }, []);
-    const handleFindMatch = useCallback(() => setIsRiskModalOpen(true), []);
+    const handleFindMatch = useCallback(() => {
+        if (isBelowMinBuy) {
+            setErrorMsg(`Minimum buy amount is ${minBuyLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}. Your order is only ${buyOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}.`);
+            return;
+        } else {
+            setErrorMsg(null);
+        }
+        setIsRiskModalOpen(true);
+    }, [isBelowMinBuy, buyOrderLocalValue, minBuyLocal, fiatCurrency]);
     const handleSaveSettings = useCallback((newMarkup: string) => setMaxMarkup(newMarkup), []);
 
     // Memoize execute match finding to prevent unnecessary re-renders
@@ -468,18 +497,8 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                 <div className="relative">
                     <label className="block text-sm font-semibold text-gray-300 mb-2">I want to buy</label>
                     <div className="flex relative">
-                        <input
-                            type="number"
-                            value={cryptoAmount}
-                            onChange={e => { setCryptoAmount(e.target.value); setLastEdited('crypto'); }}
-                            placeholder="0.00"
-                            className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setIsTokenModalOpen(true)}
-                            className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group"
-                        >
+                        <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); setErrorMsg(null); }} placeholder="0.00" className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"/>
+                        <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
                                     <TokenLogo symbol={selectedToken?.symbol || ''} address={selectedTokenAddress} className="h-6 w-6 rounded-full mr-2" size={24} />
@@ -489,6 +508,12 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                             )}
                         </button>
                     </div>
+                    {isBelowMinBuy && (
+                        <div className="text-xs text-red-400 mt-1">Minimum buy amount is {minBuyLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}. Your order is only {buyOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}.</div>
+                    )}
+                    {errorMsg && (
+                        <div className="text-xs text-red-400 mt-1">{errorMsg}</div>
+                    )}
                 </div>
                 {/* Fiat Amount Input */}
                 <div className="relative">

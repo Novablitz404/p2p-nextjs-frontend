@@ -143,11 +143,38 @@ const SellerOrderForm = ({
         setSelectedPaymentMethodIds(prev => prev.includes(methodId) ? prev.filter(id => id !== methodId) : [...prev, methodId]);
     };
 
+    // Minimum sell order value in USD
+    const MIN_SELL_USD = 30;
+    const [usdToLocalRate, setUsdToLocalRate] = useState<number | null>(null);
+    useEffect(() => {
+        const fetchUsdRate = async () => {
+            try {
+                const response = await fetch(`/api/getTokenPrice?symbol=USD&currency=${fiatCurrency}`);
+                if (!response.ok) throw new Error('Failed to fetch USD rate');
+                const data = await response.json();
+                setUsdToLocalRate(data.price);
+            } catch (error) {
+                setUsdToLocalRate(null);
+            }
+        };
+        fetchUsdRate();
+    }, [fiatCurrency]);
+    const minSellLocal = usdToLocalRate ? MIN_SELL_USD * usdToLocalRate : MIN_SELL_USD;
+    const sellOrderLocalValue = (marketPrice && cryptoAmount) ? parseFloat(cryptoAmount) * marketPrice : 0;
+    const isBelowMinSell = sellOrderLocalValue > 0 && sellOrderLocalValue < minSellLocal;
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!cryptoAmount || finalPriceRate === null || !selectedToken || selectedPaymentMethodIds.length === 0) {
             alert("Please fill out all fields.");
             return;
+        }
+        if (isBelowMinSell) {
+            setErrorMsg(`Minimum sell order is ${minSellLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}. Your order is only ${sellOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}.`);
+            return;
+        } else {
+            setErrorMsg(null);
         }
         await onSubmit(
             selectedToken.address, 
@@ -187,7 +214,7 @@ const SellerOrderForm = ({
                 <div className="relative">
                     <label className="block text-sm font-semibold text-gray-300 mb-2">I want to sell</label>
                     <div className="flex relative">
-                        <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); }} placeholder="0.00" className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"/>
+                        <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); setErrorMsg(null); }} placeholder="0.00" className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"/>
                         <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
@@ -198,6 +225,12 @@ const SellerOrderForm = ({
                             )}
                         </button>
                     </div>
+                    {isBelowMinSell && (
+                        <div className="text-xs text-red-400 mt-1">Minimum sell order is {minSellLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}. Your order is only {sellOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}.</div>
+                    )}
+                    {errorMsg && (
+                        <div className="text-xs text-red-400 mt-1">{errorMsg}</div>
+                    )}
                 </div>
                 {/* Fiat Amount Input */}
                 <div className="relative">
