@@ -9,11 +9,12 @@ import { useEffect, useState } from 'react';
 interface WalletSelectorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConnect: (connector: Connector) => void;
+    onConnect: (connector: Connector, chainId?: number) => void;
     connectors: readonly Connector[];
+    selectedChainId?: number;
 }
 
-const WalletSelectorModal = ({ isOpen, onClose, onConnect, connectors }: WalletSelectorModalProps) => {
+const WalletSelectorModal = ({ isOpen, onClose, onConnect, connectors, selectedChainId }: WalletSelectorModalProps) => {
     const [isMobile, setIsMobile] = useState(false);
     // Remove hasMetaMaskMobile state since we're always using deep-linking on mobile
 
@@ -54,15 +55,15 @@ const WalletSelectorModal = ({ isOpen, onClose, onConnect, connectors }: WalletS
                 window.location.href = `metamask://browser?url=${encodeURIComponent(window.location.href)}`;
                 // Fallback to regular connection after a delay if deep-linking fails
                 setTimeout(() => {
-                    onConnect(connector);
+                    onConnect(connector, selectedChainId);
                 }, 3000);
             } catch (error) {
                 // Fallback to regular connection
-                onConnect(connector);
+                onConnect(connector, selectedChainId);
             }
         } else {
             // Regular connection for desktop
-            onConnect(connector);
+            onConnect(connector, selectedChainId);
         }
     };
 
@@ -79,7 +80,7 @@ const WalletSelectorModal = ({ isOpen, onClose, onConnect, connectors }: WalletS
                     return (
                         <button
                             key={connector.uid}
-                            onClick={() => isMetaMask ? handleMetaMaskConnect(connector) : onConnect(connector)}
+                            onClick={() => isMetaMask ? handleMetaMaskConnect(connector) : onConnect(connector, selectedChainId)}
                             className={`w-full flex items-center justify-between px-6 py-4 font-bold text-white rounded-xl transition-all duration-200 shadow-lg ${
                                 isRecommended 
                                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 border border-blue-400/30 hover:shadow-blue-500/25' 

@@ -38,7 +38,7 @@ interface Web3ContextType {
   isOwner: boolean;
   isManager: boolean;
   isArbitrator: boolean;
-  connectWallet: (connector: Connector) => void;
+  connectWallet: (connector: Connector, chainId?: number) => void; // updated
   disconnectWallet: () => void;
   switchChain: ((args: { chainId: number; }) => void) | undefined;
   error: string | null;
@@ -156,7 +156,7 @@ const value: Web3ContextType = {
   isOwner,
   isManager,
   isArbitrator,
-  connectWallet: (connector) => connect({ connector }),
+  connectWallet: (connector, chainId) => connect(chainId ? { connector, chainId } : { connector }), // updated
   disconnectWallet,
   switchChain,
   error,

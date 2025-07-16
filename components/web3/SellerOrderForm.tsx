@@ -4,10 +4,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Spinner from '../ui/Spinner';
 import { Token } from '@/types';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, Info } from 'lucide-react';
 import Image from 'next/image';
 import { CURRENCY_PAYMENT_METHODS } from '@/constants';
 import TokenLogo from '../ui/TokenLogo';
+import { useReadContracts } from 'wagmi';
+import { P2PEscrowABI } from '@/abis/P2PEscrow';
+import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
+import { parseUnits, zeroAddress } from 'viem';
+import Tooltip from '../ui/Tooltip';
 
 const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
 const MultiSelectPaymentModal = dynamic(() => import('../ui/MultiSelectPaymentModal'));
@@ -155,6 +160,26 @@ const SellerOrderForm = ({
         // which prevents the UI from resetting prematurely.
     };
 
+    // Fetch platform fee from contract
+    const chainId = DEFAULT_CHAIN_ID; // You may want to get this from context if multi-chain
+    const contractAddress = CONTRACT_ADDRESSES[chainId];
+    const P2P_CONTRACT_CONFIG = {
+        address: contractAddress as `0x${string}`,
+        abi: P2PEscrowABI,
+    };
+    const { data: feeData, isLoading: isLoadingFee } = useReadContracts({
+        contracts: [
+            { ...P2P_CONTRACT_CONFIG, functionName: 'platformFeeBps' },
+        ],
+        query: { enabled: !!selectedToken },
+    });
+    const platformFeeBps = feeData?.[0]?.result ? Number(feeData[0].result) : 0;
+    const platformFeeRate = platformFeeBps / 10000;
+    const amountNum = parseFloat(cryptoAmount) || 0;
+    const platformFee = amountNum * platformFeeRate;
+    const totalDeposit = amountNum + platformFee;
+    const showFeeSection = amountNum > 0;
+
     return (
         <>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -236,6 +261,40 @@ const SellerOrderForm = ({
                         </p>
                     )}
                 </div>
+
+                {/* Platform Fee and Total Deposit */}
+                {showFeeSection && (
+                    <div className="flex flex-col gap-1 bg-slate-900/60 rounded-xl px-3 py-2 border border-slate-800/60 mt-1 mb-1">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-400 flex items-center gap-1">
+                                Platform Fee
+                                <Tooltip text="This is the fee charged by the platform for each order.">
+                                    <span className="flex items-center justify-center cursor-pointer text-gray-400">
+                                        <Info size={14} className="rounded-full bg-slate-800" />
+                                    </span>
+                                </Tooltip>
+                            </span>
+                            {isLoadingFee ? (
+                                <span className="text-gray-400">...</span>
+                            ) : platformFeeBps === 0 ? (
+                                <span className="text-emerald-400 font-semibold">✨ Zero ✨</span>
+                            ) : (
+                                <span className="text-white font-semibold">{platformFee} {selectedToken?.symbol || ''} <span className="text-gray-400">({platformFeeBps / 100}% fee)</span></span>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-400 flex items-center gap-1">
+                                Total Deposit
+                                <Tooltip text="This is the total amount you will deposit, including the platform fee.">
+                                    <span className="flex items-center justify-center cursor-pointer text-gray-400">
+                                        <Info size={14} className="rounded-full bg-slate-800" />
+                                    </span>
+                                </Tooltip>
+                            </span>
+                            <span className="text-white font-semibold">{totalDeposit} {selectedToken?.symbol || ''}</span>
+                        </div>
+                    </div>
+                )}
                 {/* Action Button */}
                 <div>
                     <button 

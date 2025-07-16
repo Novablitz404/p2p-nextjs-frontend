@@ -24,6 +24,7 @@ const AppHeader = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
+  const [selectedChainId, setSelectedChainId] = useState<number>(chainId ?? SUPPORTED_NETWORKS[0].chainId);
   
   const pathname = usePathname();
 
@@ -92,6 +93,7 @@ const AppHeader = () => {
                       if (switchChain) {
                           switchChain({ chainId: network.chainId });
                       }
+                      setSelectedChainId(network.chainId);
                   }}
                 />
               </>
@@ -203,11 +205,12 @@ const AppHeader = () => {
       <WalletSelectorModal
         isOpen={isWalletSelectorOpen}
         onClose={() => setIsWalletSelectorOpen(false)}
-        onConnect={(connector) => {
-          connectWallet(connector);
+        onConnect={(connector, chainId) => {
+          connectWallet(connector, chainId ?? selectedChainId);
           setIsWalletSelectorOpen(false);
         }}
         connectors={connectors}
+        selectedChainId={selectedChainId}
       />
     </>
   );
