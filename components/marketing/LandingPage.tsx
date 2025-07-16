@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import { ArrowRight, Shield, Zap, Globe, Coins, Star } from 'lucide-react';
-import { Order } from '@/types';
-import PublicOrderCard from '../ui/PublicOrderCard';
 import PlatformStats from '../ui/PlatformStats';
 import PriceCarousel from '../ui/PriceCarousel';
 import { useState, useEffect } from 'react';
@@ -60,11 +58,7 @@ function SwapCardHero() {
   );
 }
 
-interface LandingPageProps {
-  liveOrders: Order[];
-}
-
-const LandingPage = ({ liveOrders }: LandingPageProps) => {
+const LandingPage = () => {
   const phrases = ['Peer-to-Peer', 'ETH-to-USD', 'USD-to-ETH'];
   const [animatedText, setAnimatedText] = useState(0);
 
@@ -177,30 +171,7 @@ const LandingPage = ({ liveOrders }: LandingPageProps) => {
       </div>
 
       {/* Live Orders Section */}
-      {liveOrders && liveOrders.length > 0 && (
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-10 sm:py-16 relative z-10">
-          <div className="absolute inset-0 bg-slate-800/15 rounded-3xl backdrop-blur-sm"></div>
-          <div className="relative z-10">
-            <div className="text-center mb-10 sm:mb-16">
-              <h2 className="text-3xl sm:text-5xl font-bold text-white mb-4 sm:mb-6">Live Marketplace</h2>
-              <p className="text-gray-400 text-base sm:text-xl max-w-full sm:max-w-4xl mx-auto">
-                Discover real-time orders from verified sellers across the globe. Start trading instantly with secure peer-to-peer transactions.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-              {liveOrders.map(order => (
-                <PublicOrderCard key={order.id} order={order} />
-              ))}
-            </div>
-            <div className="text-center mt-10 sm:mt-16">
-              <Link href="/dapp" className="group inline-flex items-center justify-center px-6 sm:px-10 py-4 sm:py-5 font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105 text-base sm:text-lg">
-                <span className="mr-2 sm:mr-3">Explore All Markets</span>
-                <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed Live Marketplace section */}
 
       {/* Footer - Osmosis style */}
       <footer className="w-full bg-slate-900/90 border-t border-slate-800 pt-10 sm:pt-16 pb-6 sm:pb-8 mt-10 sm:mt-16">

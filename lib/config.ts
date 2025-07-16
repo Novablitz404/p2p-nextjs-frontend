@@ -2,7 +2,7 @@
 
 import { http, createConfig, createStorage, noopStorage } from 'wagmi';
 import { baseSepolia } from 'wagmi/chains';
-import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
 
 // Core Testnet chain config
 export const coreTestnet = {
@@ -33,9 +33,6 @@ export const config = createConfig({
     coinbaseWallet({
         appName: 'Rampz: P2P DEX',
         preference: 'smartWalletOnly',
-    }),
-    walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
     }),
   ],
   storage: createStorage({

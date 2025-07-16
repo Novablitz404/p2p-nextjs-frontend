@@ -14,6 +14,35 @@ interface TradeCardProps {
     onViewProof?: (url: string) => void;
 }
 
+// Currency symbol mapping
+const currencySymbols: { [key: string]: string } = {
+    PHP: '₱',
+    USD: '$',
+    EUR: '€',
+    IDR: 'Rp',
+    THB: '฿',
+    GBP: '£',
+    JPY: '¥',
+    CAD: 'C$',
+    AUD: 'A$',
+};
+
+// Format currency with proper comma separators
+const formatCurrency = (amount: number, currency: string): string => {
+    const symbol = currencySymbols[currency] || currency;
+    
+    // Special handling for JPY (no decimals)
+    if (currency === 'JPY') {
+        return `${symbol}${Math.round(amount).toLocaleString()}`;
+    }
+    
+    // For other currencies, use 2 decimal places with comma separators
+    return `${symbol}${amount.toLocaleString('en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    })}`;
+};
+
 const TradeCard = ({ trade, onRelease, onDispute, onRequestScreenshot, disputeTimeout, isProcessing, onViewProof }: TradeCardProps) => {
     const [isDisputable, setIsDisputable] = useState(false);
     const [countdown, setCountdown] = useState('');
@@ -110,11 +139,11 @@ const TradeCard = ({ trade, onRelease, onDispute, onRequestScreenshot, disputeTi
             <div className="text-sm border-t border-slate-700/40 pt-3 mt-2">
                 <div className="flex justify-between">
                     <span className="text-gray-400">Price:</span>
-                    <span className="font-semibold text-white">₱{trade.price.toFixed(2)} / {trade.tokenSymbol}</span>
+                    <span className="font-semibold text-white">{formatCurrency(trade.price, trade.fiatCurrency)} / {trade.tokenSymbol}</span>
                 </div>
                 <div className="flex justify-between mt-1">
                     <span className="text-gray-400">Receiving:</span>
-                    <span className="font-bold text-emerald-400">₱{fiatAmount.toFixed(2)}</span>
+                    <span className="font-bold text-emerald-400">{formatCurrency(fiatAmount, trade.fiatCurrency)}</span>
                 </div>
             </div>
 
