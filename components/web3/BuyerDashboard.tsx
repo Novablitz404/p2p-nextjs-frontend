@@ -108,6 +108,9 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     const isBelowMinBuy = buyOrderLocalValue > 0 && buyOrderLocalValue < minBuyLocal;
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    // Only show the error if amount is > 0 and below minimum
+    const showMinError = cryptoAmount && isBelowMinBuy;
+
     // Memoize selected token to prevent unnecessary re-computations
     const selectedToken = useMemo(() => 
         tokenList.find(t => t.address === selectedTokenAddress), 
@@ -508,7 +511,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                             )}
                         </button>
                     </div>
-                    {isBelowMinBuy && (
+                    {showMinError && (
                         <div className="text-xs text-red-400 mt-1">Minimum buy amount is {minBuyLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}. Your order is only {buyOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}.</div>
                     )}
                     {errorMsg && (
@@ -561,15 +564,11 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                 <div>
                     <button
                         type="button"
+                        className="w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={handleFindMatch}
-                        disabled={isMatching || !cryptoAmount || !fiatAmount || !paymentMethod}
-                        className={clsx(
-                            "w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500",
-                            "bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 hover:scale-[1.03] active:scale-95",
-                            (isMatching || !cryptoAmount || !fiatAmount || !paymentMethod) && "opacity-60 cursor-not-allowed"
-                        )}
+                        disabled={!cryptoAmount || isBelowMinBuy || isMatching}
                     >
-                        {isMatching ? <Spinner text="Finding Match..." /> : 'Find Best Match'}
+                        {isMatching ? <Spinner text="Matching..." /> : 'Find Match'}
                     </button>
                 </div>
             </form>

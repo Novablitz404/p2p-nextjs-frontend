@@ -164,6 +164,9 @@ const SellerOrderForm = ({
     const isBelowMinSell = sellOrderLocalValue > 0 && sellOrderLocalValue < minSellLocal;
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    // Only show the error if amount is > 0 and below minimum
+    const showMinError = cryptoAmount && isBelowMinSell;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!cryptoAmount || finalPriceRate === null || !selectedToken || selectedPaymentMethodIds.length === 0) {
@@ -225,7 +228,7 @@ const SellerOrderForm = ({
                             )}
                         </button>
                     </div>
-                    {isBelowMinSell && (
+                    {showMinError && (
                         <div className="text-xs text-red-400 mt-1">Minimum sell order is {minSellLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}. Your order is only {sellOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} {fiatCurrency}.</div>
                     )}
                     {errorMsg && (
@@ -332,14 +335,10 @@ const SellerOrderForm = ({
                 <div>
                     <button 
                         type="submit" 
-                        disabled={isProcessing || isLoadingTokens || isPriceLoading || availablePaymentMethods.length === 0 || !cryptoAmount || !fiatAmount || selectedPaymentMethodIds.length === 0} 
-                        className={[
-                            "w-full font-bold py-4 px-4 rounded-xl text-lg shadow-lg transition-all duration-200 flex items-center justify-center",
-                            "bg-gradient-to-r from-red-500 via-red-400 to-red-600 text-white hover:from-red-400 hover:to-red-500 hover:scale-[1.03] active:scale-95",
-                            (isProcessing || isLoadingTokens || isPriceLoading || availablePaymentMethods.length === 0 || !cryptoAmount || !fiatAmount || selectedPaymentMethodIds.length === 0) && "opacity-60 cursor-not-allowed"
-                        ].join(' ')}
+                        className="w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 bg-gradient-to-r from-red-500 via-red-400 to-red-600 text-white hover:from-red-400 hover:to-red-500 hover:scale-[1.03] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!cryptoAmount || isBelowMinSell || isProcessing}
                     >
-                        {isProcessing ? <Spinner text="Confirming..."/> : 'Create Sell Order'}
+                        {isProcessing ? <Spinner text="Processing..." /> : 'Create Sell Order'}
                     </button>
                 </div>
             </form>
