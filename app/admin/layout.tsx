@@ -9,7 +9,7 @@ export default function AdminSectionLayout({
   return (
     <div className="flex flex-col h-screen">
       <AppHeader />
-      <div className="flex-grow overflow-y-hidden">
+      <div className="flex-grow overflow-y-auto">
         {children}
       </div>
     </div>

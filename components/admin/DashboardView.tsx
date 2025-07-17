@@ -178,7 +178,7 @@ const DashboardView = () => {
     }
 
     return (
-        <div>
+        <div className="pb-8">
              <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
              
              {/* Pause/Unpause Controls */}
@@ -218,7 +218,7 @@ const DashboardView = () => {
              <div className="mb-6">
                 <TradeActivityChart />
              </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <StatCard title="Total Users" value={stats.userCount.toString()} icon={<Users size={20} />} />
                 <StatCard title="Open Orders" value={stats.openOrders.toString()} icon={<BarChart size={20} />} />
                 <StatCard title="Completed Trades" value={stats.completedTrades.toString()} icon={<CheckCircle size={20} />} />

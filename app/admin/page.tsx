@@ -65,7 +65,7 @@ const AdminPage = () => {
                 setActiveView={setActiveView}
                 isOwner={isOwner}
             />
-            <main className="flex-1 p-6">
+            <main className="flex-1 p-6 overflow-y-auto">
                 {renderActiveView()}
             </main>
         </div>
