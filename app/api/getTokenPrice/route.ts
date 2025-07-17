@@ -4,7 +4,7 @@ import { fetchTokenPrice } from '@/lib/config';
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const tokenSymbol = searchParams.get('symbol');
-    const currency = searchParams.get('currency')?.toLowerCase(); // ADD: Get currency from request
+    const currency = searchParams.get('currency')?.toLowerCase();
 
     if (!tokenSymbol || !currency) {
         return NextResponse.json({ error: 'Token symbol and currency are required.' }, { status: 400 });
@@ -16,17 +16,35 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ price: 1 });
         }
         try {
-            // Use CoinGecko to get USD to currency rate
+            // Use CoinGecko to get USD to currency rate with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
             const url = `https://api.coingecko.com/api/v3/simple/price?ids=usd&vs_currencies=${currency}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('Failed to fetch USD rate');
+            const res = await fetch(url, { 
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            
             const data = await res.json();
             const rate = data.usd?.[currency];
             if (!rate) throw new Error('No rate found');
             return NextResponse.json({ price: rate });
         } catch (error) {
             console.error('API Error fetching USD rate:', error);
-            return NextResponse.json({ error: 'Failed to fetch USD rate.' }, { status: 500 });
+            // Return a fallback response instead of error
+            return NextResponse.json({ 
+                price: 1, // Fallback to 1:1 rate
+                warning: 'Using fallback rate due to API unavailability'
+            });
         }
     }
 
@@ -36,6 +54,10 @@ export async function GET(req: NextRequest) {
 
     } catch (error) {
         console.error('API Error fetching token price:', error);
-        return NextResponse.json({ error: 'Failed to fetch token price.' }, { status: 500 });
+        // Return a fallback response instead of error
+        return NextResponse.json({ 
+            price: 0, // Fallback price
+            warning: 'Using fallback price due to API unavailability'
+        });
     }
 }

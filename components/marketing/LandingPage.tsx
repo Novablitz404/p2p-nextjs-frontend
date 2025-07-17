@@ -79,6 +79,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-2 sm:px-4 flex flex-col items-center justify-center relative">
           {/* Hero Card */}
           <div className="relative w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between bg-slate-900/80 rounded-3xl shadow-2xl px-4 sm:px-8 py-8 sm:py-14 md:py-20 md:px-16 z-10">
+            {/* Background image */}
+            <div className="absolute inset-0 rounded-3xl bg-cover bg-center bg-no-repeat opacity-30" style={{ backgroundImage: 'url(/Background.png)' }} />
             {/* Apply a subtle green-tinted gradient background to the hero card */}
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-slate-900/80 via-emerald-900/70 to-slate-800/80 z-0" />
             <div className="relative z-10 w-full flex flex-col md:flex-row items-center justify-between">
@@ -99,7 +101,13 @@ const LandingPage = () => {
                   </span>
                 </h1>
                 <p className="mt-2 sm:mt-4 max-w-full sm:max-w-3xl text-base xs:text-lg sm:text-2xl font-semibold text-white leading-relaxed mb-6 sm:mb-8 text-center md:text-left w-full">
-                  <span className="text-emerald-400">Global Crypto</span>, <span className="text-blue-400">Local Access</span>. <span className="text-gray-300">On-chain</span> <span className="text-emerald-400">securely</span> <span className="text-gray-300">in seconds.</span>
+                  <span>
+                    A <span className="text-emerald-400 text-2xl sm:text-3xl font-bold">decentralized peer-to-peer</span> platform
+                  </span>
+                  <br />
+                  <span>
+                    Providing users a direct <span className="text-blue-400 text-2xl sm:text-3xl font-bold">Gateway on-chain</span>.
+                  </span>
                 </p>
               </div>
               {/* Right: Overlapping Swap Card Illustration */}
@@ -176,56 +184,46 @@ const LandingPage = () => {
       {/* Footer - Osmosis style */}
       <footer className="w-full bg-slate-900/90 border-t border-slate-800 pt-10 sm:pt-16 pb-6 sm:pb-8 mt-10 sm:mt-16">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-8 text-left text-gray-400 mb-8 sm:mb-12">
-            <div>
-              <div className="font-bold text-white mb-3">Platform</div>
-              <ul className="space-y-2">
-                <li><a href="/dapp" className="hover:text-emerald-400 transition">Trade</a></li>
-                <li><a href="/dapp" className="hover:text-emerald-400 transition">Orders</a></li>
-                <li><a href="/dapp/payment-methods" className="hover:text-emerald-400 transition">Payment Methods</a></li>
-              </ul>
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:gap-8 text-left text-gray-400 mb-12">
+            <div className="flex items-start">
+              <div className="flex flex-col items-start">
+                <img src="/RampzLogo.png" alt="Rampz Logo" className="h-10 sm:h-12 w-auto" />
+                <div className="text-sm text-gray-400 font-medium mt-2">
+                  <div>A decentralized peer-to-peer platform</div>
+                  <div>providing users a direct gateway on-chain.</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="font-bold text-white mb-3">Token</div>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-emerald-400 transition">RAMPZ</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">CoinGecko</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">CoinMarketCap</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-bold text-white mb-3">Community</div>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-emerald-400 transition">Twitter</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">Telegram</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">Discord</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-bold text-white mb-3">Developers</div>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-emerald-400 transition">Docs</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">GitHub</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">Grants</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-bold text-white mb-3">Team</div>
-              <ul className="space-y-2">
-                <li><a href="mailto:hello@rampz.xyz" className="hover:text-emerald-400 transition">Contact</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">Blog</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition">Careers</a></li>
-              </ul>
+            <div className="flex gap-8">
+              <div>
+                <div className="font-bold text-white mb-3">Platform</div>
+                <ul className="space-y-2">
+                  <li><a href="/dapp" className="hover:text-emerald-400 transition">Trade</a></li>
+                  <li><a href="/dapp" className="hover:text-emerald-400 transition">Orders</a></li>
+                  <li><a href="/dapp/payment-methods" className="hover:text-emerald-400 transition">Payment Methods</a></li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-bold text-white mb-3">Community</div>
+                <ul className="space-y-2">
+                  <li><a href="#" className="hover:text-emerald-400 transition">X</a></li>
+                  <li><a href="#" className="hover:text-emerald-400 transition">Telegram</a></li>
+                  <li><a href="#" className="hover:text-emerald-400 transition">Discord</a></li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-bold text-white mb-3">Rampz</div>
+                <ul className="space-y-2">
+                  <li><a href="/privacy-policy" className="hover:text-emerald-400 transition">Privacy Policy</a></li>
+                  <li><a href="/terms-of-service" className="hover:text-emerald-400 transition">Terms of Service</a></li>
+                </ul>
+              </div>
             </div>
           </div>
           <div className="border-t border-slate-800 my-6 sm:my-8"></div>
           <div className="flex flex-col xs:flex-row items-center justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img src="/RampzLogo.png" alt="Rampz Logo" className="h-8 sm:h-10 w-auto" />
-              <span className="font-bold text-white text-base sm:text-lg tracking-wide">RAMPZ</span>
-            </div>
             <div className="flex gap-3 sm:gap-5 text-xl sm:text-2xl mt-2 xs:mt-0">
-              <a href="#" className="hover:text-emerald-400 transition" aria-label="Twitter"><svg width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.93 9.93 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724c-.951.564-2.005.974-3.127 1.195A4.916 4.916 0 0 0 16.616 3c-2.72 0-4.924 2.206-4.924 4.924 0 .386.044.763.127 1.124C7.728 8.807 4.1 6.884 1.671 3.965c-.423.724-.666 1.561-.666 2.475 0 1.708.87 3.216 2.188 4.099a4.904 4.904 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.936 4.936 0 0 1-2.224.084c.627 1.956 2.444 3.377 4.6 3.417A9.867 9.867 0 0 1 0 21.543a13.94 13.94 0 0 0 7.548 2.212c9.057 0 14.009-7.514 14.009-14.009 0-.213-.005-.425-.014-.636A10.012 10.012 0 0 0 24 4.557z"/></svg></a>
+              <a href="#" className="hover:text-emerald-400 transition" aria-label="X"><svg width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
               <a href="#" className="hover:text-emerald-400 transition" aria-label="GitHub"><svg width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.809 1.304 3.495.997.108-.775.418-1.305.762-1.605-2.665-.305-5.466-1.334-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23a11.52 11.52 0 0 1 3.003-.404c1.018.005 2.045.138 3.003.404 2.291-1.553 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.624-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .322.218.694.825.576C20.565 21.796 24 17.299 24 12c0-6.627-5.373-12-12-12z"/></svg></a>
               <a href="#" className="hover:text-emerald-400 transition" aria-label="Telegram"><svg width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.371 0 0 5.371 0 12c0 6.627 5.371 12 12 12s12-5.373 12-12c0-6.629-5.371-12-12-12zm5.707 8.293l-1.414 8.485c-.104.623-.441.771-.893.48l-2.475-1.826-1.193 1.15c-.132.132-.242.242-.495.242l.176-2.497 4.545-4.104c.198-.176-.043-.274-.308-.098l-5.617 3.537-2.419-.756c-.527-.164-.537-.527.11-.777l9.447-3.646c.441-.164.827.098.684.771z"/></svg></a>
             </div>

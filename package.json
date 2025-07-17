@@ -10,6 +10,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@coinbase/onchainkit": "^0.38.17",
     "@farcaster/miniapp-sdk": "^0.1.2",
     "@tanstack/react-query": "5.81.2",
     "@types/uuid": "^10.0.0",
@@ -22,6 +23,7 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.5.2",
     "recharts": "^3.0.0",
+    "sharp": "^0.34.3",
     "swr": "^2.3.3",
     "uuid": "^11.1.0",
     "viem": "^2.31.4",
