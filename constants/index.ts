@@ -101,6 +101,6 @@ export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
 };
 
 export const CONTRACT_ADDRESSES: Record<number, string> = {
-  84532: "0xE7222b0CBD56CAb0cebD26Bfec5579d495e0CE11", // Base Sepolia
+  84532: "0xCE18CE7b380D35B01681259124E5E9d3Aa1ab325", // Base Sepolia
   1114:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Core Testnet
 };
