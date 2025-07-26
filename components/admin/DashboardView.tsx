@@ -220,9 +220,11 @@ const DashboardView = () => {
     }
 
     return (
-        <div className="space-y-8 pb-8">
-            {/* Contract Status Card */}
-            <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 rounded-xl border border-slate-700/50 shadow-lg">
+        <div className="pb-8">
+             <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
+             
+             {/* Pause/Unpause Controls */}
+             <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className={`p-3 rounded-lg ${isPaused ? 'bg-red-500/10 border border-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/20'}`}>
@@ -263,6 +265,15 @@ const DashboardView = () => {
             {/* Chart Section */}
             <div>
                 <TradeActivityChart />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <StatCard title="Total Users" value={stats.userCount.toString()} icon={<Users size={20} />} />
+                <StatCard title="Open Orders" value={stats.openOrders.toString()} icon={<BarChart size={20} />} />
+                <StatCard title="Completed Trades" value={stats.completedTrades.toString()} icon={<CheckCircle size={20} />} />
+                <StatCard title="Cancelled Trades" value={stats.cancelledTrades.toString()} icon={<XCircle size={20} />} />
+                <StatCard title="Approved Tokens" value={stats.tokenCount.toString()} icon={<Gem size={20} />} />
+                <StatCard title="Platform Fee" value={`${stats.feeBps}%`} icon={<Percent size={20} />} />
+                <StatCard title="Fee Recipient" value={stats.feeRecipient} icon={<Wallet size={20} />} />
             </div>
         </div>
     );
