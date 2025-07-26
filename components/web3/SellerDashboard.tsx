@@ -34,6 +34,9 @@ interface SellerDashboardProps {
     tokenList: Token[];
     supportedCurrencies: string[];
     isLoadingTokens: boolean;
+    onOpenModal: (modalName: string, props: any) => void;
+    onCloseModal: (modalName: string) => void;
+    modalStates: any;
 }
 
 const SellerDashboard = React.memo(({ 
@@ -41,7 +44,10 @@ const SellerDashboard = React.memo(({
     userProfile,
     tokenList, 
     supportedCurrencies,
-    isLoadingTokens, 
+    isLoadingTokens,
+    onOpenModal,
+    onCloseModal,
+    modalStates,
 }: SellerDashboardProps) => {
     const { address, chainId } = useWeb3();
     const { addNotification } = useNotification();
@@ -49,11 +55,10 @@ const SellerDashboard = React.memo(({
     const router = useRouter(); // Initialize the router
 
     const [myPaymentMethods, setMyPaymentMethods] = useState<any[]>([]);
-    const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
+
     const [pendingOrderArgs, setPendingOrderArgs] = useState<any>(null);
     const [markupPercentage, setMarkupPercentage] = useState(1.5);
     const [minCancellationRate, setMinCancellationRate] = useState('');
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
     // --- THIS IS A CHANGE ---
@@ -87,14 +92,14 @@ const SellerDashboard = React.memo(({
             return; 
         }
         setPendingOrderArgs({ tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate });
-        setIsRiskModalOpen(true);
+        onOpenModal('sellerRiskWarning', { onConfirm: executeCreateSellOrder });
     }, [tokenList, myPaymentMethods, markupPercentage, minCancellationRate, addNotification]);
 
     // Memoize execute create sell order handler to prevent unnecessary re-renders
     const executeCreateSellOrder = useCallback(async () => {
         if (!pendingOrderArgs || !address) return;
         const { tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate } = pendingOrderArgs;
-        setIsRiskModalOpen(false);
+        onCloseModal('sellerRiskWarning');
     
         try {
             const platformFeeBps = await readContract(config, { ...P2P_CONTRACT_CONFIG, functionName: 'platformFeeBps' });
@@ -203,24 +208,24 @@ const SellerDashboard = React.memo(({
 
     return (
         <>
-            {/* Title and Settings Button */}
+                        {/* Title and Settings Button */}
             <div className="relative flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Create Sell Order</h2>
                 <div className="relative inline-block">
                     <button 
                         ref={settingsButtonRef}
-                        onClick={() => setIsSettingsModalOpen(prev => !prev)} 
+                        onClick={() => onOpenModal('sellerSettings', { onSave: handleSaveSettings, initialMarkup: markupPercentage, initialCancellationRate: minCancellationRate, toggleButtonRef: settingsButtonRef })} 
                         className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
                         aria-label="Seller Settings"
                     >
                         <Settings size={20} />
                     </button>
                     <SellerSettingsModal
-                        isOpen={isSettingsModalOpen}
-                        onClose={() => setIsSettingsModalOpen(false)}
-                        onSave={handleSaveSettings}
-                        initialMarkup={markupPercentage}
-                        initialCancellationRate={minCancellationRate}
+                        isOpen={modalStates.sellerSettings.isOpen}
+                        onClose={() => onCloseModal('sellerSettings')}
+                        onSave={modalStates.sellerSettings.onSave}
+                        initialMarkup={modalStates.sellerSettings.initialMarkup}
+                        initialCancellationRate={modalStates.sellerSettings.initialCancellationRate}
                         toggleButtonRef={settingsButtonRef}
                     />
                 </div>
@@ -233,12 +238,10 @@ const SellerDashboard = React.memo(({
                 myPaymentMethods={myPaymentMethods}
                 isProcessing={isPending}
                 markupPercentage={markupPercentage}
+                onOpenModal={onOpenModal}
+                onCloseModal={onCloseModal}
             />
-            <SellerRiskWarningModal
-                isOpen={isRiskModalOpen}
-                onClose={() => setIsRiskModalOpen(false)}
-                onConfirm={executeCreateSellOrder}
-            />
+
             <NotificationModal
                 onClose={() => setNotification({ isOpen: false, title: '', message: ''})} 
                 {...notification} 

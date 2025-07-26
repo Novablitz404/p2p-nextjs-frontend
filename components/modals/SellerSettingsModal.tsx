@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Modal from '../ui/Modal';
 import Tooltip from '../ui/Tooltip';
 import { Info } from 'lucide-react';
 
@@ -11,7 +10,7 @@ interface SellerSettingsModalProps {
     onSave: (settings: { markup: number; cancellationRate: string }) => void;
     initialMarkup: number;
     initialCancellationRate: string;
-    toggleButtonRef: React.RefObject<HTMLButtonElement>;
+    toggleButtonRef?: React.RefObject<HTMLButtonElement>;
 }
 
 const DEFAULT_MARKUP = 1.5;
@@ -33,7 +32,7 @@ const SellerSettingsModal = ({
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (toggleButtonRef.current && toggleButtonRef.current.contains(event.target as Node)) {
+            if (toggleButtonRef?.current && toggleButtonRef.current.contains(event.target as Node)) {
                 return;
             }
             if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {

@@ -9,7 +9,7 @@ interface BuyerSettingsModalProps {
     onClose: () => void;
     onSave: (markup: string) => void;
     initialMarkup: string;
-    toggleButtonRef: React.RefObject<HTMLButtonElement>;
+    toggleButtonRef?: React.RefObject<HTMLButtonElement>;
 }
 
 const BuyerSettingsModal = ({
@@ -25,7 +25,7 @@ const BuyerSettingsModal = ({
     // Click outside to close logic
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (toggleButtonRef.current && toggleButtonRef.current.contains(event.target as Node)) {
+            if (toggleButtonRef?.current && toggleButtonRef.current.contains(event.target as Node)) {
                 return;
             }
             if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
@@ -54,7 +54,7 @@ const BuyerSettingsModal = ({
 
     if (!isOpen) return null;
 
-    // Render the modal as a normal child, positioned absolutely below the gear icon, right-aligned
+    // Render the modal as a popover positioned absolutely relative to the gear icon
     return (
         <div
             ref={popoverRef}

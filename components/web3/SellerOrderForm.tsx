@@ -37,6 +37,8 @@ interface SellerOrderFormProps {
     isLoadingTokens: boolean;
     myPaymentMethods: PaymentMethod[];
     isProcessing: boolean;
+    onOpenModal: (modalName: string, props: any) => void;
+    onCloseModal: (modalName: string) => void;
 }
 
 const currencyCountryMap: { [key: string]: string } = {
@@ -62,7 +64,9 @@ const SellerOrderForm = ({
     supportedCurrencies, 
     isLoadingTokens, 
     myPaymentMethods, 
-    isProcessing // Use the prop from the parent
+    isProcessing,
+    onOpenModal,
+    onCloseModal
 }: SellerOrderFormProps) => {
     const [cryptoAmount, setCryptoAmount] = useState('');
     const [fiatAmount, setFiatAmount] = useState('');
@@ -75,9 +79,7 @@ const SellerOrderForm = ({
     
     const [selectedPaymentMethodIds, setSelectedPaymentMethodIds] = useState<string[]>([]);
     
-    const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
+
     
     const selectedToken = tokenList.find(t => t.address === selectedTokenAddress);
     const countryCode = currencyCountryMap[fiatCurrency] || 'xx';
@@ -107,7 +109,9 @@ const SellerOrderForm = ({
 
     useEffect(() => {
         if (!selectedToken || !fiatCurrency) return;
-        const fetchPrice = async () => {
+        
+        // Add a small delay to prevent rapid successive calls
+        const timeoutId = setTimeout(async () => {
             setIsPriceLoading(true);
             setMarketPrice(null);
             try {
@@ -120,9 +124,10 @@ const SellerOrderForm = ({
             } finally {
                 setIsPriceLoading(false);
             }
-        };
-        fetchPrice();
-    }, [selectedToken, fiatCurrency]);
+        }, 100);
+        
+        return () => clearTimeout(timeoutId);
+    }, [selectedToken?.symbol, fiatCurrency]);
 
     useEffect(() => {
         if (lastEdited !== 'crypto' || finalPriceRate === null) return;
@@ -137,8 +142,14 @@ const SellerOrderForm = ({
         setCryptoAmount(fiatValue > 0 && finalPriceRate > 0 ? (fiatValue / finalPriceRate).toPrecision(8) : '');
     }, [fiatAmount, finalPriceRate, lastEdited]);
 
-    const handleTokenSelect = (address: string) => setSelectedTokenAddress(address);
-    const handleCurrencySelect = (currency: string) => setFiatCurrency(currency);
+    const handleTokenSelect = (address: string) => {
+        setSelectedTokenAddress(address);
+        onCloseModal('tokenSelector');
+    };
+    const handleCurrencySelect = (currency: string) => {
+        setFiatCurrency(currency);
+        onCloseModal('currencySelector');
+    };
     const handlePaymentMethodChange = (methodId: string) => {
         setSelectedPaymentMethodIds(prev => prev.includes(methodId) ? prev.filter(id => id !== methodId) : [...prev, methodId]);
     };
@@ -218,7 +229,7 @@ const SellerOrderForm = ({
                     <label className="block text-sm font-semibold text-gray-300 mb-2">I want to sell</label>
                     <div className="flex relative">
                         <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); setErrorMsg(null); }} placeholder="0.00" className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"/>
-                        <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
+                        <button type="button" onClick={() => onOpenModal('tokenSelector', { tokenList, onSelect: handleTokenSelect })} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
                                     <TokenLogo symbol={selectedToken?.symbol || ''} address={selectedTokenAddress} className="h-6 w-6 rounded-full mr-2" size={24} />
@@ -253,7 +264,7 @@ const SellerOrderForm = ({
                             placeholder="0.00" 
                             className="flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"
                         />
-                        <button type="button" onClick={() => setIsCurrencyModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group" disabled={supportedCurrencies.length === 0}>
+                                                    <button type="button" onClick={() => onOpenModal('currencySelector', { currencies: supportedCurrencies, onSelect: handleCurrencySelect })} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group" disabled={supportedCurrencies.length === 0}>
                             <Image src={`https://flagcdn.com/w40/${countryCode}.png`} alt={`${fiatCurrency} flag`} width={24} height={18} className="mr-2 rounded-sm" />
                             <span className="font-bold text-white group-hover:text-red-400 transition-colors">{fiatCurrency}</span>
                             <ChevronDown className="h-5 w-5 text-gray-400 ml-1 group-hover:text-red-400 transition-colors" />
@@ -265,7 +276,7 @@ const SellerOrderForm = ({
                     <label className="block text-sm font-semibold text-gray-300 mb-2">Receive payment via</label>
                     <button
                         type="button"
-                        onClick={() => availablePaymentMethods.length > 0 && setIsPaymentModalOpen(true)}
+                        onClick={() => availablePaymentMethods.length > 0 && onOpenModal('multiSelectPayment', { myPaymentMethods: availablePaymentMethods, selectedIds: selectedPaymentMethodIds, onSelectionChange: handlePaymentMethodChange, selectedCurrency: fiatCurrency })}
                         className="w-full flex items-center flex-wrap gap-2 bg-slate-800/70 text-white rounded-xl p-4 text-lg border border-slate-700 hover:border-red-400 focus:ring-2 focus:ring-red-500 focus:outline-none transition group min-h-[50px]"
                         disabled={availablePaymentMethods.length === 0}
                     >
@@ -343,14 +354,7 @@ const SellerOrderForm = ({
                 </div>
             </form>
 
-            <TokenSelectorModal isOpen={isTokenModalOpen} onClose={() => setIsTokenModalOpen(false)} tokenList={tokenList} onSelectToken={handleTokenSelect} />
-            <MultiSelectPaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} myPaymentMethods={availablePaymentMethods} selectedIds={selectedPaymentMethodIds} onSelectionChange={handlePaymentMethodChange} selectedCurrency={fiatCurrency} />
-            <CurrencySelectorModal
-                isOpen={isCurrencyModalOpen}
-                onClose={() => setIsCurrencyModalOpen(false)}
-                currencies={supportedCurrencies}
-                onSelectCurrency={handleCurrencySelect}
-            />
+
         </>
     );
 };

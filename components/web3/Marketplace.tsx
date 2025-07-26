@@ -28,6 +28,18 @@ const SellerDashboard = dynamic(() => import('./SellerDashboard'), {
     ssr: false
 });
 
+// Dynamically import modals
+const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
+const PaymentMethodSelectorModal = dynamic(() => import('../ui/PaymentMethodSelectorModal'));
+const CurrencySelectorModal = dynamic(() => import('../ui/CurrencySelectorModal'));
+const BuyerRiskWarningModal = dynamic(() => import('../modals/BuyerRiskWarningModal'));
+const BuyerSettingsModal = dynamic(() => import('../modals/BuyerSettingsModal'));
+const SellerRiskWarningModal = dynamic(() => import('../modals/SellerRiskWarningModal'));
+const SellerSettingsModal = dynamic(() => import('../modals/SellerSettingsModal'));
+const SellerSuggestionModal = dynamic(() => import('./SellerSuggestionModal'));
+const MultiSelectPaymentModal = dynamic(() => import('../ui/MultiSelectPaymentModal'));
+const NotificationModal = dynamic(() => import('../ui/NotificationModal'));
+
 type TabButtonProps = {
   isActive: boolean;
   onClick: () => void;
@@ -55,6 +67,20 @@ const Marketplace = () => {
     const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
     const [isLoadingFirestore, setIsLoadingFirestore] = useState(true);
     const [hasInitialized, setHasInitialized] = useState(false);
+
+    // Modal state management
+    const [modalStates, setModalStates] = useState({
+        tokenSelector: { isOpen: false, tokenList: [] as Token[], onSelect: null as any },
+        paymentMethodSelector: { isOpen: false, paymentMethods: [], onSelect: null as any, selectedCurrency: '' },
+        currencySelector: { isOpen: false, currencies: [], onSelect: null as any },
+        multiSelectPayment: { isOpen: false, myPaymentMethods: [], selectedIds: [], onSelectionChange: null as any, selectedCurrency: '' },
+        buyerRiskWarning: { isOpen: false, onConfirm: null as any },
+        buyerSettings: { isOpen: false, onSave: null as any, initialMarkup: '', toggleButtonRef: null as any },
+        sellerRiskWarning: { isOpen: false, onConfirm: null as any },
+        sellerSettings: { isOpen: false, onSave: null as any, initialMarkup: 0, initialCancellationRate: '', toggleButtonRef: null as any },
+        sellerSuggestion: { isOpen: false, onConfirm: null as any, tradePlan: null, sellerProfiles: {} },
+        notification: { isOpen: false, title: '', message: '', action: null as any }
+    } as any);
 
     const { chainId } = useWeb3();
     const currentNetwork = SUPPORTED_NETWORKS.find(n => n.chainId === chainId) ?? SUPPORTED_NETWORKS[0];
@@ -160,6 +186,21 @@ const Marketplace = () => {
         setActiveTab(tab);
     }, []);
 
+    // Modal handlers
+    const openModal = useCallback((modalName: string, props: any) => {
+        setModalStates((prev: any) => ({
+            ...prev,
+            [modalName]: { ...prev[modalName], isOpen: true, ...props }
+        }));
+    }, []);
+
+    const closeModal = useCallback((modalName: string) => {
+        setModalStates((prev: any) => ({
+            ...prev,
+            [modalName]: { ...prev[modalName], isOpen: false }
+        }));
+    }, []);
+
     // Show loading state
     if (isLoading) {
         return (
@@ -210,6 +251,9 @@ const Marketplace = () => {
                                 tokenList={approvedTokensList}
                                 isLoadingTokens={isLoadingTokenDetails}
                                 supportedCurrencies={supportedCurrencies}
+                                onOpenModal={openModal}
+                                onCloseModal={closeModal}
+                                modalStates={modalStates}
                             />
                         ) : (
                             <SellerDashboard 
@@ -219,11 +263,67 @@ const Marketplace = () => {
                                 isLoadingTokens={isLoadingTokenDetails}
                                 supportedCurrencies={supportedCurrencies}
                                 userProfile={userProfile}
+                                onOpenModal={openModal}
+                                onCloseModal={closeModal}
+                                modalStates={modalStates}
                             />
                         )}
                     </div>
                 </div>
             )}
+
+            {/* Modals rendered at marketplace level */}
+            <TokenSelectorModal 
+                isOpen={modalStates.tokenSelector.isOpen} 
+                onClose={() => closeModal('tokenSelector')} 
+                tokenList={modalStates.tokenSelector.tokenList} 
+                onSelectToken={modalStates.tokenSelector.onSelect} 
+            />
+            <PaymentMethodSelectorModal 
+                isOpen={modalStates.paymentMethodSelector.isOpen} 
+                onClose={() => closeModal('paymentMethodSelector')} 
+                paymentMethods={modalStates.paymentMethodSelector.paymentMethods} 
+                onSelectMethod={modalStates.paymentMethodSelector.onSelect} 
+                selectedCurrency={modalStates.paymentMethodSelector.selectedCurrency} 
+            />
+            <CurrencySelectorModal 
+                isOpen={modalStates.currencySelector.isOpen} 
+                onClose={() => closeModal('currencySelector')} 
+                currencies={modalStates.currencySelector.currencies} 
+                onSelectCurrency={modalStates.currencySelector.onSelect} 
+            />
+            <BuyerRiskWarningModal 
+                isOpen={modalStates.buyerRiskWarning.isOpen} 
+                onClose={() => closeModal('buyerRiskWarning')} 
+                onConfirm={modalStates.buyerRiskWarning.onConfirm} 
+            />
+            <SellerRiskWarningModal 
+                isOpen={modalStates.sellerRiskWarning.isOpen} 
+                onClose={() => closeModal('sellerRiskWarning')} 
+                onConfirm={modalStates.sellerRiskWarning.onConfirm} 
+            />
+            <MultiSelectPaymentModal 
+                isOpen={modalStates.multiSelectPayment.isOpen} 
+                onClose={() => closeModal('multiSelectPayment')} 
+                myPaymentMethods={modalStates.multiSelectPayment.myPaymentMethods} 
+                selectedIds={modalStates.multiSelectPayment.selectedIds} 
+                onSelectionChange={modalStates.multiSelectPayment.onSelectionChange} 
+                selectedCurrency={modalStates.multiSelectPayment.selectedCurrency} 
+            />
+            <SellerSuggestionModal 
+                isOpen={modalStates.sellerSuggestion.isOpen} 
+                onClose={() => closeModal('sellerSuggestion')} 
+                onConfirm={modalStates.sellerSuggestion.onConfirm} 
+                tradePlan={modalStates.sellerSuggestion.tradePlan} 
+                sellerProfiles={modalStates.sellerSuggestion.sellerProfiles} 
+            />
+            <NotificationModal 
+                isOpen={modalStates.notification.isOpen} 
+                onClose={() => closeModal('notification')} 
+                title={modalStates.notification.title} 
+                message={modalStates.notification.message} 
+                action={modalStates.notification.action} 
+            />
         </div>
     );
 };

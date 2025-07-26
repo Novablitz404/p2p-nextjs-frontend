@@ -24,8 +24,28 @@ export const coreTestnet = {
   testnet: true,
 };
 
+// Example: How to add a new chain (Ethereum Mainnet)
+// export const ethereumMainnet = {
+//   id: 1,
+//   name: 'Ethereum',
+//   network: 'ethereum',
+//   nativeCurrency: {
+//     name: 'Ether',
+//     symbol: 'ETH',
+//     decimals: 18,
+//   },
+//   rpcUrls: {
+//     default: { http: ['https://mainnet.infura.io/v3/YOUR_INFURA_KEY'] },
+//     public: { http: ['https://mainnet.infura.io/v3/YOUR_INFURA_KEY'] },
+//   },
+//   blockExplorers: {
+//     default: { name: 'Etherscan', url: 'https://etherscan.io' },
+//   },
+//   testnet: false,
+// };
+
 export const config = createConfig({
-  chains: [baseSepolia, coreTestnet],
+  chains: [baseSepolia, coreTestnet], // Add your new chain here: ethereumMainnet
   connectors: [
     injected({
         target: 'metaMask',
@@ -41,6 +61,8 @@ export const config = createConfig({
   transports: {
     [baseSepolia.id]: http(),
     [coreTestnet.id]: http('https://rpc.test2.btcs.network'),
+    // Add your new network transport here:
+    // [ethereumMainnet.id]: http('https://mainnet.infura.io/v3/YOUR_INFURA_KEY'),
   },
 });
 

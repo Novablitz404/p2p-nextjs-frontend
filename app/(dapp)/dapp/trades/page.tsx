@@ -7,6 +7,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteFi
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { Trade } from '@/types';
 import dynamic from 'next/dynamic';
+import { syncOrderRemainingAmount } from '@/lib/syncUtils';
 import { useRouter } from 'next/navigation';
 import { useNotification } from '@/lib/NotificationProvider';
 
@@ -242,34 +243,54 @@ const TradesPage = () => {
     const handleReleaseFunds = async (trade: Trade) => {
         setProcessingTradeId(trade.id);
         try {
-
-            const hash = await writeContractAsync({ ...P2P_CONTRACT_CONFIG, functionName: 'releaseFundsForTrade', args: [BigInt(trade.onChainId)] });
+            // 1. Execute blockchain transaction
+            const hash = await writeContractAsync({ 
+                ...P2P_CONTRACT_CONFIG, 
+                functionName: 'releaseFundsForTrade', 
+                args: [BigInt(trade.onChainId)] 
+            });
             await waitForTransactionReceipt(config, { hash });
             
-            // Start a batch write to Firestore
-            const batch = writeBatch(db);
-
-            // 1. Update the trade status
-            const tradeRef = doc(db, "trades", trade.id);
-            batch.update(tradeRef, { status: 'RELEASED', releaseTxHash: hash, chainId: chainId ?? DEFAULT_CHAIN_ID });
-
-            // 2. Check the parent order's status from the blockchain
-            const onChainOrder = await readContract(config, {
-                ...P2P_CONTRACT_CONFIG,
-                functionName: 'orders',
-                args: [BigInt(trade.orderId)]
+            // 2. Sync order state with blockchain
+            const syncResult = await syncOrderRemainingAmount({
+                orderId: trade.orderId,
+                onChainId: trade.orderId,
+                tokenDecimals: trade.tokenDecimals,
+                chainId: chainId ?? DEFAULT_CHAIN_ID
             });
-            
-            const remainingAmount = onChainOrder[4]; // remainingAmount is at index 4
 
-            // 3. If the remaining amount is zero, close the order in Firestore
-            if (remainingAmount === 0n) {
-                const orderRef = doc(db, "orders", trade.orderId);
-                batch.update(orderRef, { status: 'CLOSED', remainingAmount: 0 });
+            if (!syncResult.success) {
+                console.error('Failed to sync order state:', syncResult.error);
+                setNotification({ 
+                    isOpen: true, 
+                    title: "Warning", 
+                    message: "Funds released but order state sync failed. Please check your orders." 
+                });
+                return;
             }
 
-            // 4. Commit all changes at once
-            await batch.commit();
+            // 3. Update trade status
+            await updateDoc(doc(db, "trades", trade.id), { 
+                status: 'RELEASED', 
+                releaseTxHash: hash, 
+                chainId: chainId ?? DEFAULT_CHAIN_ID,
+                lastSyncTimestamp: new Date()
+            });
+
+            // 4. Handle order closure if needed
+            if (syncResult.firestoreUpdated && syncResult.firestoreAmount === 0) {
+                await updateDoc(doc(db, "orders", trade.orderId), { 
+                    status: 'CLOSED', 
+                    remainingAmount: 0,
+                    lastUpdated: new Date()
+                });
+            }
+            
+            setNotification({ 
+                isOpen: true, 
+                title: "Success", 
+                message: `Funds released successfully. ${syncResult.firestoreUpdated ? 'Order state synchronized.' : 'Order state was already current.'}` 
+            });
             
         } catch (error: any) {
             setNotification({ isOpen: true, title: "Release Failed", message: error.shortMessage || "The transaction failed." });

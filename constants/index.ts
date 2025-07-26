@@ -42,10 +42,26 @@ export const CORE_TESTNET_CONFIG: NetworkConfig = {
     logoUrl: '/core.svg',
 };
 
+// Example: How to add a new network (Ethereum Mainnet)
+// export const ETHEREUM_MAINNET_CONFIG: NetworkConfig = {
+//     chainId: 1,
+//     chainName: "Ethereum Mainnet",
+//     rpcUrls: ["https://mainnet.infura.io/v3/YOUR_INFURA_KEY"],
+//     nativeCurrency: {
+//         name: "Ether",
+//         symbol: "ETH",
+//         decimals: 18,
+//     },
+//     blockExplorerUrls: ["https://etherscan.io"],
+//     logoUrl: '/eth.svg', // Add this logo to your /public folder
+// };
+
 // Array of all supported networks for the dropdown
 export const SUPPORTED_NETWORKS: NetworkConfig[] = [
     BASE_SEPOLIA_CONFIG,
     CORE_TESTNET_CONFIG,
+    // Add your new network here:
+    // ETHEREUM_MAINNET_CONFIG,
     // You can add more supported networks here in the future
 ];
 
@@ -103,4 +119,6 @@ export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
 export const CONTRACT_ADDRESSES: Record<number, string> = {
   84532: "0xCE18CE7b380D35B01681259124E5E9d3Aa1ab325", // Base Sepolia
   1114:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Core Testnet
+  // Add your new network contract address here:
+  // 1: "0xYOUR_CONTRACT_ADDRESS_HERE", // Ethereum Mainnet
 };

@@ -6,7 +6,7 @@ import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getCountFromServer } from 'firebase/firestore';
 import StatCard from '@/components/ui/StatCard';
-import { Gem, Percent, Wallet, Users, CheckCircle, BarChart, XCircle, Pause, Play } from 'lucide-react';
+import { Gem, Percent, Wallet, Users, CheckCircle, BarChart, XCircle, Pause, Play, TrendingUp, Activity, Shield } from 'lucide-react';
 import Spinner from '../ui/Spinner';
 import { useReadContracts, useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -29,26 +29,55 @@ const TradeActivityChart = () => {
     const { data, error } = useSWR('/api/getTradeStats', fetcher, { refreshInterval: 60000 });
 
     if (!data && !error) {
-        return <div className="h-72 flex justify-center items-center bg-slate-800 rounded-lg border border-slate-700"><Spinner text="Loading chart data..." /></div>;
+        return (
+            <div className="h-80 flex justify-center items-center bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl border border-slate-700/50 shadow-lg">
+                <div className="text-center">
+                    <Spinner text="Loading chart data..." />
+                </div>
+            </div>
+        );
     }
     
     if (error) {
-        return <div className="h-72 flex justify-center items-center text-red-400 bg-slate-800 rounded-lg border border-slate-700">Failed to load chart data.</div>;
+        return (
+            <div className="h-80 flex justify-center items-center bg-gradient-to-br from-red-900/20 to-red-800/20 rounded-xl border border-red-700/50 shadow-lg">
+                <div className="text-center text-red-400">
+                    <XCircle size={48} className="mx-auto mb-4" />
+                    <p className="text-lg font-semibold">Failed to load chart data</p>
+                    <p className="text-sm text-red-300">Please refresh the page to try again</p>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="h-72 bg-slate-800 p-4 rounded-lg border border-slate-700">
+        <div className="h-80 bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl border border-slate-700/50 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h3 className="text-xl font-bold text-white">Trade Activity</h3>
+                    <p className="text-sm text-gray-400">Completed vs Cancelled trades over time</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Activity size={16} />
+                    <span>Live Data</span>
+                </div>
+            </div>
             <ResponsiveContainer width="100%" height="100%">
-                {/* FIX: Changed from BarChart to LineChart */}
                 <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                     <XAxis dataKey="Date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} width={30} />
-                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }} />
+                    <Tooltip 
+                        contentStyle={{ 
+                            backgroundColor: '#1e293b', 
+                            border: '1px solid #334155',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }} 
+                    />
                     <Legend wrapperStyle={{ fontSize: '14px' }}/>
-                    {/* FIX: Use two <Line> components instead of <Bar> */}
-                    <Line type="monotone" dataKey="Completed" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    <Line type="monotone" dataKey="Cancelled" stroke="#f43f5e" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="Completed" stroke="#10b981" strokeWidth={3} dot={{ r: 5, fill: '#10b981' }} activeDot={{ r: 8, stroke: '#10b981', strokeWidth: 2 }} />
+                    <Line type="monotone" dataKey="Cancelled" stroke="#f43f5e" strokeWidth={3} dot={{ r: 5, fill: '#f43f5e' }} activeDot={{ r: 8, stroke: '#f43f5e', strokeWidth: 2 }} />
                 </LineChart>
             </ResponsiveContainer>
         </div>
@@ -170,62 +199,70 @@ const DashboardView = () => {
     const isDashboardLoading = isLoading || (isLoadingOnChain && !onChainData);
 
     if (isDashboardLoading) {
-        return <div className="flex justify-center items-center h-full"><Spinner text="Loading dashboard stats..." /></div>;
+        return (
+            <div className="flex justify-center items-center h-96">
+                <div className="text-center">
+                    <Spinner text="Loading dashboard stats..." />
+                </div>
+            </div>
+        );
     }
 
     if (error || isOnChainError) {
-        return <div className="flex justify-center items-center h-full text-red-500">{error || "Failed to load on-chain data."}</div>;
+        return (
+            <div className="flex justify-center items-center h-96">
+                <div className="text-center text-red-500">
+                    <XCircle size={48} className="mx-auto mb-4" />
+                    <p className="text-lg font-semibold">{error || "Failed to load on-chain data."}</p>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div>
-             <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
-             
-             {/* Pause/Unpause Controls */}
-             <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
+        <div className="space-y-8 pb-8">
+            {/* Contract Status Card */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 rounded-xl border border-slate-700/50 shadow-lg">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-lg font-semibold text-white mb-2">Contract Status</h2>
-                        <p className="text-sm text-gray-400">
-                            {isPaused === null ? 'Loading...' : 
-                             isPaused ? 'Contract is currently paused' : 'Contract is active and running'}
-                        </p>
+                    <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-lg ${isPaused ? 'bg-red-500/10 border border-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/20'}`}>
+                            <Shield size={24} className={isPaused ? 'text-red-400' : 'text-emerald-400'} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-semibold text-white mb-1">Contract Status</h2>
+                            <p className="text-sm text-gray-400">
+                                {isPaused === null ? 'Loading contract status...' : 
+                                 isPaused ? 'Contract is currently paused and not accepting new trades' : 'Contract is active and running normally'}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex gap-3">
                         {isPaused ? (
                             <button
                                 onClick={handleUnpause}
                                 disabled={isPausePending}
-                                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:from-emerald-800 disabled:to-emerald-900 text-white font-semibold rounded-lg transition-all duration-200 disabled:cursor-not-allowed shadow-lg hover:shadow-emerald-500/25"
                             >
-                                {isPausePending ? <Spinner /> : <Play size={16} />}
+                                {isPausePending ? <Spinner /> : <Play size={18} />}
                                 {isPausePending ? 'Unpausing...' : 'Unpause Contract'}
                             </button>
                         ) : (
                             <button
                                 onClick={handlePause}
                                 disabled={isPausePending}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-red-800 disabled:to-red-900 text-white font-semibold rounded-lg transition-all duration-200 disabled:cursor-not-allowed shadow-lg hover:shadow-red-500/25"
                             >
-                                {isPausePending ? <Spinner /> : <Pause size={16} />}
+                                {isPausePending ? <Spinner /> : <Pause size={18} />}
                                 {isPausePending ? 'Pausing...' : 'Pause Contract'}
                             </button>
                         )}
                     </div>
                 </div>
-             </div>
-             
-             <div className="mb-6">
+            </div>
+            
+            {/* Chart Section */}
+            <div>
                 <TradeActivityChart />
-             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="Total Users" value={stats.userCount.toString()} icon={<Users size={20} />} />
-                <StatCard title="Open Orders" value={stats.openOrders.toString()} icon={<BarChart size={20} />} />
-                <StatCard title="Completed Trades" value={stats.completedTrades.toString()} icon={<CheckCircle size={20} />} />
-                <StatCard title="Cancelled Trades" value={stats.cancelledTrades.toString()} icon={<XCircle size={20} />} />
-                <StatCard title="Approved Tokens" value={stats.tokenCount.toString()} icon={<Gem size={20} />} />
-                <StatCard title="Platform Fee" value={`${stats.feeBps}%`} icon={<Percent size={20} />} />
-                <StatCard title="Fee Recipient" value={stats.feeRecipient} icon={<Wallet size={20} />} />
             </div>
         </div>
     );

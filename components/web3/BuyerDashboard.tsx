@@ -24,6 +24,7 @@ import { ChevronDown, Settings } from 'lucide-react';
 import { useNotifications } from '@/lib/NotificationProvider';
 import { CURRENCY_PAYMENT_METHODS } from '@/constants';
 import { CONTRACT_ADDRESSES, SUPPORTED_NETWORKS } from '@/constants';
+import { validateOrderState, atomicTradeCreation } from '@/lib/syncUtils';
 
 const SellerSuggestionModal = dynamic(() => import('../web3/SellerSuggestionModal'));
 const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
@@ -37,6 +38,9 @@ interface BuyerDashboardProps {
     tokenList: Token[];
     isLoadingTokens: boolean;
     supportedCurrencies: string[];
+    onOpenModal: (modalName: string, props: any) => void;
+    onCloseModal: (modalName: string) => void;
+    modalStates: any;
 }
 
 const currencyCountryMap: { [key: string]: string } = { PHP: 'ph', USD: 'us', EUR: 'eu', THB: 'th', IDR: 'id' };
@@ -49,7 +53,7 @@ const formatFiatValue = (value: string): string => {
     return parts.join('.');
 };
 
-const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, supportedCurrencies }: BuyerDashboardProps) => {
+const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, supportedCurrencies, onOpenModal, onCloseModal, modalStates }: BuyerDashboardProps) => {
     const { addNotification } = useNotifications();
     const router = useRouter();
 
@@ -76,16 +80,9 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     const [isMatching, setIsMatching] = useState(false);
     const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
     const [sellerProfiles, setSellerProfiles] = useState<{ [key: string]: UserProfile }>({});
-    const [isSellerSuggestionModalOpen, setIsSellerSuggestionModalOpen] = useState(false);
-    const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
+
     const [maxMarkup, setMaxMarkup] = useState('');
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const settingsButtonRef = useRef<HTMLButtonElement>(null);
-    
-    // FIX: Re-add the missing state declarations for the modals
-    const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
-    const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] = useState(false);
-    const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
 
     // Minimum buy order value in USD
     const MIN_BUY_USD = 10;
@@ -157,10 +154,15 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         } finally { 
             setIsPriceLoading(false); 
         }
-    }, [selectedToken, fiatCurrency]);
+    }, [selectedToken?.symbol, fiatCurrency]);
 
     useEffect(() => {
-        fetchPrice();
+        // Add a small delay to prevent rapid successive calls
+        const timeoutId = setTimeout(() => {
+            fetchPrice();
+        }, 100);
+        
+        return () => clearTimeout(timeoutId);
     }, [fetchPrice]);
 
     // Memoize crypto to fiat conversion
@@ -183,8 +185,8 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     const handleCurrencySelect = useCallback((currency: string) => setFiatCurrency(currency), []);
     const handlePaymentMethodSelect = useCallback((method: string) => { 
         setPaymentMethod(method); 
-        setIsPaymentMethodModalOpen(false); 
-    }, []);
+        onCloseModal('paymentMethodSelector'); 
+    }, [onCloseModal]);
     const handleFindMatch = useCallback(() => {
         if (isBelowMinBuy) {
             setErrorMsg(`Minimum buy amount is ${minBuyLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}. Your order is only ${buyOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}.`);
@@ -192,13 +194,13 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         } else {
             setErrorMsg(null);
         }
-        setIsRiskModalOpen(true);
+        onOpenModal('buyerRiskWarning', { onConfirm: executeMatchFinding });
     }, [isBelowMinBuy, buyOrderLocalValue, minBuyLocal, fiatCurrency]);
     const handleSaveSettings = useCallback((newMarkup: string) => setMaxMarkup(newMarkup), []);
 
     // Memoize execute match finding to prevent unnecessary re-renders
     const executeMatchFinding = useCallback(async () => {
-        setIsRiskModalOpen(false);
+        onCloseModal('buyerRiskWarning');
         if (!selectedToken || !userId) { 
             addNotification({ type: 'error', message: 'Please connect wallet and select a token.' }); 
             return; 
@@ -366,7 +368,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
             }
     
             setTradePlan({ matches: matchedOrders, totalCrypto: Number(cryptoAmount), totalFiat: 0, avgPrice: 0, buyerId: userId });
-            setIsSellerSuggestionModalOpen(true);
+            onOpenModal('sellerSuggestion', { onConfirm: handleSellerSelected, tradePlan, sellerProfiles });
     
         } catch (error: any) {
             addNotification({ type: 'error', message: 'Could not search for matches: ' + error.message });
@@ -379,7 +381,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     const handleSellerSelected = useCallback(async (selectedSeller: any) => {
         if (!selectedSeller || !selectedSeller.matchedOrders.length) return;
         
-        setIsSellerSuggestionModalOpen(false);
+                    onCloseModal('sellerSuggestion');
         
         // Create a trade plan with only the selected seller's orders
         const finalTradePlan: TradePlan = {
@@ -393,11 +395,35 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         await handleConfirmTrade(finalTradePlan);
     }, [userId]);
 
-    // Memoize confirm trade handler
+    // Memoize confirm trade handler with enhanced validation and sync
     const handleConfirmTrade = useCallback(async (finalTradePlan: TradePlan) => {
         if (!finalTradePlan || !finalTradePlan.matches.length) return;
 
         try {
+            // 1. Pre-validate all orders before blockchain transaction
+            addNotification({ type: 'info', message: 'Validating order availability...' });
+            
+            const validationPromises = finalTradePlan.matches.map(async (match) => {
+                const validation = await validateOrderState({
+                    orderId: match.firestoreId,
+                    onChainId: match.onChainId,
+                    tokenDecimals: match.tokenDecimals,
+                    chainId: chainId ?? 84532
+                }, match.amountToTake);
+
+                if (!validation.valid) {
+                    throw new Error(`Order ${match.onChainId}: ${validation.error}`);
+                }
+
+                return {
+                    match,
+                    availableAmount: validation.availableAmount
+                };
+            });
+
+            const validations = await Promise.all(validationPromises);
+            
+            // 2. Execute blockchain transaction
             const orderIds = finalTradePlan.matches.map(match => BigInt(match.onChainId));
             const amountsToLockInWei = finalTradePlan.matches.map(match => match.amountToTakeInWei as bigint);
     
@@ -416,7 +442,9 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     
             if (tradeLogs.length === 0) throw new Error("Could not find any TradeCreated events in the transaction receipt.");
     
-            const batch = writeBatch(db);
+            // 3. Prepare atomic Firestore updates
+            const tradeDataArray: any[] = [];
+            const orderUpdates: Array<{ orderId: string; newRemainingAmount: number }> = [];
             
             tradeLogs.forEach((log) => {
                 const parsedLog = decodeEventLog({ abi: P2PEscrowABI, ...log });
@@ -426,11 +454,11 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                 const originalMatch = finalTradePlan.matches.find(m => m.onChainId === originalOrderId);
     
                 if (newTradeOnChainId && originalMatch) {
-                    const newTradeDocRef = doc(collection(db, "trades"));
                     const lockedPrice = originalMatch.fiatCost / originalMatch.amountToTake;
                     const specificPaymentDetails = originalMatch.paymentDetails?.[originalMatch.paymentMethod] ?? null;
 
-                    batch.set(newTradeDocRef, {
+                    const tradeData = {
+                        id: newTradeOnChainId, // Use onChainId as document ID for consistency
                         onChainId: newTradeOnChainId,
                         orderId: originalOrderId,
                         firestoreId: originalMatch.firestoreId,
@@ -446,20 +474,41 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                         sellerPaymentDetails: specificPaymentDetails,
                         createdAt: serverTimestamp(),
                         creationTxHash: receipt.transactionHash,
-                    });
+                        chainId: chainId ?? 84532
+                    };
+
+                    tradeDataArray.push(tradeData);
                     
-                    const orderRef = doc(db, "orders", originalMatch.firestoreId);
                     const newRemainingAmount = originalMatch.remainingAmount - originalMatch.amountToTake;
-                    batch.update(orderRef, { remainingAmount: newRemainingAmount });
+                    orderUpdates.push({
+                        orderId: originalMatch.firestoreId,
+                        newRemainingAmount
+                    });
                 }
             });
-            
-            await batch.commit();
-    
+
+            // 4. Execute atomic Firestore operations
+            const atomicResults = await Promise.all(
+                tradeDataArray.map(async (tradeData, index) => {
+                    return atomicTradeCreation(tradeData, [orderUpdates[index]]);
+                })
+            );
+
+            // 5. Check for any failed atomic operations
+            const failedOperations = atomicResults.filter(result => !result.success);
+            if (failedOperations.length > 0) {
+                console.error('Some atomic operations failed:', failedOperations);
+                addNotification({ 
+                    type: 'error', 
+                    message: `${failedOperations.length} trade(s) may not have been properly recorded. Please check your trades.` 
+                });
+            }
+
+            const successCount = atomicResults.filter(result => result.success).length;
             addNotification({ 
                 type: 'success', 
-                message: `${tradeLogs.length} new trades are available!`,
-                link: '/dapp/trades' // Add the link here
+                message: `${successCount} new trade(s) created successfully!`,
+                link: '/dapp/trades'
             });
             
             router.push('/dapp/trades');
@@ -470,27 +519,27 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         } finally {
             reset();
         }
-    }, [writeContractAsync, addNotification, router, reset]);
+    }, [writeContractAsync, addNotification, router, reset, chainId]);
 
     return (
         <>
-            {/* Title and Settings Button */}
+                        {/* Title and Settings Button */}
             <div className="relative flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white">Find Best Match</h2>
                 <div className="relative inline-block">
                     <button 
                         ref={settingsButtonRef}
-                        onClick={() => setIsSettingsModalOpen(prev => !prev)} 
+                        onClick={() => onOpenModal('buyerSettings', { onSave: handleSaveSettings, initialMarkup: maxMarkup, toggleButtonRef: settingsButtonRef })} 
                         className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors" 
                         aria-label="Buyer Settings"
                     >
                         <Settings size={20} />
                     </button>
                     <BuyerSettingsModal
-                        isOpen={isSettingsModalOpen}
-                        onClose={() => setIsSettingsModalOpen(false)}
-                        onSave={handleSaveSettings}
-                        initialMarkup={maxMarkup}
+                        isOpen={modalStates.buyerSettings.isOpen}
+                        onClose={() => onCloseModal('buyerSettings')}
+                        onSave={modalStates.buyerSettings.onSave}
+                        initialMarkup={modalStates.buyerSettings.initialMarkup}
                         toggleButtonRef={settingsButtonRef}
                     />
                 </div>
@@ -501,7 +550,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     <label className="block text-sm font-semibold text-gray-300 mb-2">I want to buy</label>
                     <div className="flex relative">
                         <input type="number" value={cryptoAmount} onChange={(e) => { setCryptoAmount(e.target.value); setLastEdited('crypto'); setErrorMsg(null); }} placeholder="0.00" className="hide-number-arrows flex-grow w-full bg-slate-800/70 text-white rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none transition border border-slate-700 placeholder-gray-500 shadow-inner"/>
-                        <button type="button" onClick={() => setIsTokenModalOpen(true)} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
+                        <button type="button" onClick={() => onOpenModal('tokenSelector', { tokenList, onSelect: handleTokenSelect })} className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group">
                             {isLoadingTokens ? <Spinner /> : (
                                 <>
                                     <TokenLogo symbol={selectedToken?.symbol || ''} address={selectedTokenAddress} className="h-6 w-6 rounded-full mr-2" size={24} />
@@ -538,7 +587,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                         />
                         <button
                             type="button"
-                            onClick={() => setIsCurrencyModalOpen(true)}
+                            onClick={() => onOpenModal('currencySelector', { currencies: supportedCurrencies, onSelect: handleCurrencySelect })}
                             className="absolute right-0 top-0 h-full flex items-center justify-center px-4 bg-slate-700/80 hover:bg-slate-600/80 rounded-r-xl transition-colors group"
                             disabled={supportedCurrencies.length === 0}
                         >
@@ -553,7 +602,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     <label className="block text-sm font-semibold text-gray-300 mb-2">My payment method</label>
                     <button
                         type="button"
-                        onClick={() => setIsPaymentMethodModalOpen(true)}
+                        onClick={() => onOpenModal('paymentMethodSelector', { paymentMethods: availablePaymentMethods, onSelect: handlePaymentMethodSelect, selectedCurrency: fiatCurrency })}
                         className="w-full flex items-center justify-between bg-slate-800/70 text-white rounded-xl p-4 text-lg border border-slate-700 hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition group"
                     >
                         <span className="font-semibold group-hover:text-emerald-400 transition-colors">{paymentMethod || 'Select payment method'}</span>
@@ -572,18 +621,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     </button>
                 </div>
             </form>
-            {/* Modals and Selectors */}
-            <TokenSelectorModal isOpen={isTokenModalOpen} onClose={() => setIsTokenModalOpen(false)} tokenList={tokenList} onSelectToken={handleTokenSelect} />
-            <PaymentMethodSelectorModal isOpen={isPaymentMethodModalOpen} onClose={() => setIsPaymentMethodModalOpen(false)} paymentMethods={availablePaymentMethods} onSelectMethod={handlePaymentMethodSelect} selectedCurrency={fiatCurrency} />
-            <CurrencySelectorModal isOpen={isCurrencyModalOpen} onClose={() => setIsCurrencyModalOpen(false)} currencies={supportedCurrencies} onSelectCurrency={handleCurrencySelect} />
-            <BuyerRiskWarningModal isOpen={isRiskModalOpen} onClose={() => setIsRiskModalOpen(false)} onConfirm={executeMatchFinding} />
-            <SellerSuggestionModal
-                isOpen={isSellerSuggestionModalOpen}
-                onClose={() => setIsSellerSuggestionModalOpen(false)}
-                onConfirm={handleSellerSelected}
-                tradePlan={tradePlan}
-                sellerProfiles={sellerProfiles}
-            />
+
         </>
     );
 });
