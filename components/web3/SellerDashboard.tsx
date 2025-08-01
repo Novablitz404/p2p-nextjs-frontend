@@ -91,14 +91,23 @@ const SellerDashboard = React.memo(({
             addNotification({ type: 'error', message: 'Please select at least one payment method.' }); 
             return; 
         }
-        setPendingOrderArgs({ tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate });
-        onOpenModal('sellerRiskWarning', { onConfirm: executeCreateSellOrder });
-    }, [tokenList, myPaymentMethods, markupPercentage, minCancellationRate, addNotification]);
+        const orderArgs = { tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate };
+        setPendingOrderArgs(orderArgs);
+        
+        // Create a closure that captures the order args
+        const handleConfirm = () => {
+            console.log('SellerDashboard: handleConfirm called with orderArgs', orderArgs);
+            executeCreateSellOrder(orderArgs);
+        };
+        
+        onOpenModal('sellerRiskWarning', { onConfirm: handleConfirm });
+    }, [tokenList, myPaymentMethods, markupPercentage, minCancellationRate, addNotification, onOpenModal]);
 
     // Memoize execute create sell order handler to prevent unnecessary re-renders
-    const executeCreateSellOrder = useCallback(async () => {
-        if (!pendingOrderArgs || !address) return;
-        const { tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate } = pendingOrderArgs;
+    const executeCreateSellOrder = useCallback(async (orderArgs?: any) => {
+        const args = orderArgs || pendingOrderArgs;
+        if (!args || !address) return;
+        const { tokenAddress, tokenSymbol, amount, selectedMethods, fiatCurrency, selectedToken, markupPercentage, minCancellationRate } = args;
         onCloseModal('sellerRiskWarning');
     
         try {
@@ -192,7 +201,7 @@ const SellerDashboard = React.memo(({
             reset();
             setPendingOrderArgs(null);
         }
-    }, [pendingOrderArgs, address, writeContractAsync, addNotification, router, reset, userId]);
+    }, [address, writeContractAsync, addNotification, router, reset, userId]);
     
     // Memoize save settings handler to prevent unnecessary re-renders
     const handleSaveSettings = useCallback((settings: { markup: number; cancellationRate: string }) => {

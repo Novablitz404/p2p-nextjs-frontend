@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useEffect } from 'react';
 import Modal from './Modal';
 import { CheckCircle, Circle } from 'lucide-react';
 
@@ -17,17 +18,26 @@ interface MultiSelectPaymentModalProps {
     selectedCurrency?: string;
 }
 
-const MultiSelectPaymentModal = ({ isOpen, onClose, myPaymentMethods, selectedIds, onSelectionChange, selectedCurrency }: MultiSelectPaymentModalProps) => {
+const MultiSelectPaymentModal = React.memo(({ isOpen, onClose, myPaymentMethods, selectedIds, onSelectionChange, selectedCurrency }: MultiSelectPaymentModalProps) => {
+    // Debug logging - only log when props actually change
+    useEffect(() => {
+        console.log('MultiSelectPaymentModal props:', { isOpen, myPaymentMethods, selectedIds, selectedCurrency });
+    }, [isOpen, myPaymentMethods, selectedIds, selectedCurrency]);
+    
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Select Payment Methods">
             <div className="flex flex-col space-y-2 max-h-[300px] overflow-y-auto -mr-2 pr-2">
                 {myPaymentMethods.length > 0 ? (
                     myPaymentMethods.map(method => {
                         const isSelected = selectedIds.includes(method.id);
+                        
                         return (
                             <button 
                                 key={method.id}
-                                onClick={() => onSelectionChange(method.id)}
+                                onClick={() => {
+                                    console.log(`Clicked method ${method.id}`);
+                                    onSelectionChange(method.id);
+                                }}
                                 className={`w-full flex items-center p-3 rounded-lg transition-colors text-left border-2 ${
                                     isSelected 
                                     ? 'bg-emerald-500/10 border-emerald-500' 
@@ -56,6 +66,8 @@ const MultiSelectPaymentModal = ({ isOpen, onClose, myPaymentMethods, selectedId
             </div>
         </Modal>
     );
-};
+});
+
+MultiSelectPaymentModal.displayName = 'MultiSelectPaymentModal';
 
 export default MultiSelectPaymentModal;

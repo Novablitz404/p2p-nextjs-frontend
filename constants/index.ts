@@ -42,6 +42,19 @@ export const CORE_TESTNET_CONFIG: NetworkConfig = {
     logoUrl: '/core.svg',
 };
 
+export const LISK_SEPOLIA_CONFIG: NetworkConfig = {
+    chainId: 4202,
+    chainName: "Lisk Sepolia Testnet",
+    rpcUrls: ["https://rpc.sepolia-api.lisk.com"],
+    nativeCurrency: {
+        name: "Ether",
+        symbol: "ETH",
+        decimals: 18,
+    },
+    blockExplorerUrls: ["https://sepolia-blockscout.lisk.com"],
+    logoUrl: '/lisk-profile-w.svg',
+};
+
 // Example: How to add a new network (Ethereum Mainnet)
 // export const ETHEREUM_MAINNET_CONFIG: NetworkConfig = {
 //     chainId: 1,
@@ -58,15 +71,16 @@ export const CORE_TESTNET_CONFIG: NetworkConfig = {
 
 // Array of all supported networks for the dropdown
 export const SUPPORTED_NETWORKS: NetworkConfig[] = [
-    BASE_SEPOLIA_CONFIG,
-    CORE_TESTNET_CONFIG,
+    LISK_SEPOLIA_CONFIG,    // Lisk Sepolia (now first)
+    // BASE_SEPOLIA_CONFIG,     // Base Sepolia (temporarily disabled - contract not deployed)
+    // CORE_TESTNET_CONFIG,     // Core Testnet (temporarily disabled - contract not deployed)
     // Add your new network here:
     // ETHEREUM_MAINNET_CONFIG,
     // You can add more supported networks here in the future
 ];
 
-// Define the default network your app should run on
-export const DEFAULT_CHAIN_ID = BASE_SEPOLIA_CONFIG.chainId;
+// Default chain ID - now Lisk Sepolia
+export const DEFAULT_CHAIN_ID = 4202; // Lisk Sepolia Testnet
 
 // Currency to Payment Method Mapping
 export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
@@ -117,8 +131,9 @@ export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
 };
 
 export const CONTRACT_ADDRESSES: Record<number, string> = {
-  84532: "0xCE18CE7b380D35B01681259124E5E9d3Aa1ab325", // Base Sepolia
-  1114:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Core Testnet
+  // 84532: "0xYOUR_BASE_SEPOLIA_CONTRACT_ADDRESS", // Base Sepolia (need to deploy contract)
+  // 1114:  "0xYOUR_CORE_TESTNET_CONTRACT_ADDRESS",   // Core Testnet (need to deploy contract)
+  4202:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Lisk Sepolia Testnet
   // Add your new network contract address here:
   // 1: "0xYOUR_CONTRACT_ADDRESS_HERE", // Ethereum Mainnet
 };

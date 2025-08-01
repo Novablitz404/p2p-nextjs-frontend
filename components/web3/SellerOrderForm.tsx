@@ -57,7 +57,7 @@ const formatFiatValue = (value: string): string => {
     return parts.join('.');
 };
 
-const SellerOrderForm = ({ 
+const SellerOrderForm = React.memo(({ 
     onSubmit, 
     markupPercentage,
     tokenList, 
@@ -215,6 +215,18 @@ const SellerOrderForm = ({
         query: { enabled: !!selectedToken },
     });
     const platformFeeBps = feeData?.[0]?.result ? Number(feeData[0].result) : 0;
+    
+    // Debug logging - only log when values actually change
+    useEffect(() => {
+        console.log('Platform Fee Debug:', {
+            chainId,
+            contractAddress,
+            feeData,
+            platformFeeBps,
+            isLoadingFee
+        });
+    }, [chainId, contractAddress, feeData, platformFeeBps, isLoadingFee]);
+    
     const platformFeeRate = platformFeeBps / 10000;
     const amountNum = parseFloat(cryptoAmount) || 0;
     const platformFee = amountNum * platformFeeRate;
@@ -290,14 +302,21 @@ const SellerOrderForm = ({
                             selectedMethods.map(method => (
                                 <span key={method.id} className="flex items-center gap-1.5 bg-red-500/20 text-red-300 text-sm font-semibold px-2 py-1 rounded-full">
                                     {method.channel}
-                                    <button
-                                        type="button"
+                                    <span
                                         onClick={e => { e.stopPropagation(); handlePaymentMethodChange(method.id); }}
-                                        className="ml-1 text-red-400 hover:text-white focus:outline-none"
-                                        tabIndex={-1}
+                                        className="ml-1 text-red-400 hover:text-white focus:outline-none cursor-pointer"
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handlePaymentMethodChange(method.id);
+                                            }
+                                        }}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
+                                    </span>
                                 </span>
                             ))
                         )}
@@ -357,6 +376,8 @@ const SellerOrderForm = ({
 
         </>
     );
-};
+});
+
+SellerOrderForm.displayName = 'SellerOrderForm';
 
 export default SellerOrderForm;

@@ -367,8 +367,10 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                 matchedOrders = optimalOrders;
             }
     
-            setTradePlan({ matches: matchedOrders, totalCrypto: Number(cryptoAmount), totalFiat: 0, avgPrice: 0, buyerId: userId });
-            onOpenModal('sellerSuggestion', { onConfirm: handleSellerSelected, tradePlan, sellerProfiles });
+            const newTradePlan = { matches: matchedOrders, totalCrypto: Number(cryptoAmount), totalFiat: 0, avgPrice: 0, buyerId: userId };
+            console.log('BuyerDashboard: Opening seller suggestion modal with trade plan:', newTradePlan);
+            setTradePlan(newTradePlan);
+            onOpenModal('sellerSuggestion', { onConfirm: handleSellerSelected, tradePlan: newTradePlan, sellerProfiles });
     
         } catch (error: any) {
             addNotification({ type: 'error', message: 'Could not search for matches: ' + error.message });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Modal from '../ui/Modal';
 import Link from 'next/link';
 
@@ -10,7 +10,7 @@ interface BuyerRiskWarningModalProps {
     onConfirm: () => void;
 }
 
-const BuyerRiskWarningModal = ({ isOpen, onClose, onConfirm }: BuyerRiskWarningModalProps) => {
+const BuyerRiskWarningModal = React.memo(({ isOpen, onClose, onConfirm }: BuyerRiskWarningModalProps) => {
     const [scamWarningAgreed, setScamWarningAgreed] = useState(false);
     const [termsAgreed, setTermsAgreed] = useState(false);
 
@@ -69,6 +69,8 @@ const BuyerRiskWarningModal = ({ isOpen, onClose, onConfirm }: BuyerRiskWarningM
             </div>
         </Modal>
     );
-};
+});
+
+BuyerRiskWarningModal.displayName = 'BuyerRiskWarningModal';
 
 export default BuyerRiskWarningModal;

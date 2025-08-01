@@ -24,6 +24,26 @@ export const coreTestnet = {
   testnet: true,
 };
 
+// Lisk Sepolia Testnet chain config
+export const liskSepolia = {
+  id: 4202,
+  name: 'Lisk Sepolia Testnet',
+  network: 'lisk-sepolia',
+  nativeCurrency: {
+    name: 'Ether',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: ['https://rpc.sepolia-api.lisk.com'] },
+    public: { http: ['https://rpc.sepolia-api.lisk.com'] },
+  },
+  blockExplorers: {
+    default: { name: 'Lisk Blockscout', url: 'https://sepolia-blockscout.lisk.com' },
+  },
+  testnet: true,
+};
+
 // Example: How to add a new chain (Ethereum Mainnet)
 // export const ethereumMainnet = {
 //   id: 1,
@@ -45,7 +65,7 @@ export const coreTestnet = {
 // };
 
 export const config = createConfig({
-  chains: [baseSepolia, coreTestnet], // Add your new chain here: ethereumMainnet
+  chains: [liskSepolia, baseSepolia, coreTestnet], // Lisk Sepolia first
   connectors: [
     injected({
         target: 'metaMask',
@@ -59,6 +79,7 @@ export const config = createConfig({
     storage: typeof window !== 'undefined' ? window.localStorage : noopStorage,
   }),
   transports: {
+    [liskSepolia.id]: http('https://rpc.sepolia-api.lisk.com'), // Lisk first
     [baseSepolia.id]: http(),
     [coreTestnet.id]: http('https://rpc.test2.btcs.network'),
     // Add your new network transport here:

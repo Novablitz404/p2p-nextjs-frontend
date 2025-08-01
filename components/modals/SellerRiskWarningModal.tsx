@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import Link from 'next/link';
 
@@ -10,17 +10,26 @@ interface RiskWarningModalProps {
     onConfirm: () => void;
 }
 
-const SellerRiskWarningModal = ({ isOpen, onClose, onConfirm }: RiskWarningModalProps) => {
+const SellerRiskWarningModal = React.memo(({ isOpen, onClose, onConfirm }: RiskWarningModalProps) => {
     const [scamWarningAgreed, setScamWarningAgreed] = useState(false);
     const [termsAgreed, setTermsAgreed] = useState(false);
 
     const canConfirm = scamWarningAgreed && termsAgreed;
 
     const handleConfirm = () => {
+        console.log('SellerRiskWarningModal: handleConfirm called', { canConfirm, scamWarningAgreed, termsAgreed });
         if (canConfirm) {
+            console.log('SellerRiskWarningModal: calling onConfirm');
             onConfirm();
+        } else {
+            console.log('SellerRiskWarningModal: cannot confirm - conditions not met');
         }
     };
+
+    // Debug logging - only log when props actually change
+    useEffect(() => {
+        console.log('SellerRiskWarningModal render:', { isOpen, canConfirm, scamWarningAgreed, termsAgreed });
+    }, [isOpen, canConfirm, scamWarningAgreed, termsAgreed]);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Before You Create an Order...">
@@ -35,7 +44,10 @@ const SellerRiskWarningModal = ({ isOpen, onClose, onConfirm }: RiskWarningModal
                     <input 
                         type="checkbox" 
                         checked={scamWarningAgreed} 
-                        onChange={(e) => setScamWarningAgreed(e.target.checked)} 
+                        onChange={(e) => {
+                            console.log('Scam warning checkbox changed:', e.target.checked);
+                            setScamWarningAgreed(e.target.checked);
+                        }} 
                         className="mt-0.5 h-4 w-4 rounded bg-slate-700 border-slate-600 text-emerald-500 focus:ring-emerald-500 flex-shrink-0" 
                     />
                     <span>I understand the risks of P2P trading and will verify all payments independently before releasing assets.</span>
@@ -45,7 +57,10 @@ const SellerRiskWarningModal = ({ isOpen, onClose, onConfirm }: RiskWarningModal
                     <input 
                         type="checkbox" 
                         checked={termsAgreed} 
-                        onChange={(e) => setTermsAgreed(e.target.checked)} 
+                        onChange={(e) => {
+                            console.log('Terms checkbox changed:', e.target.checked);
+                            setTermsAgreed(e.target.checked);
+                        }} 
                         className="mt-0.5 h-4 w-4 rounded bg-slate-700 border-slate-600 text-emerald-500 focus:ring-emerald-500 flex-shrink-0" 
                     />
                     <span>I agree to the platform's <Link href="/terms" className="text-emerald-400 hover:underline">Terms of Service</Link> and <Link href="/privacy" className="text-emerald-400 hover:underline">Privacy Policy</Link>.</span>
@@ -69,6 +84,8 @@ const SellerRiskWarningModal = ({ isOpen, onClose, onConfirm }: RiskWarningModal
             </div>
         </Modal>
     );
-};
+});
+
+SellerRiskWarningModal.displayName = 'SellerRiskWarningModal';
 
 export default SellerRiskWarningModal;

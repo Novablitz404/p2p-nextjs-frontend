@@ -31,10 +31,11 @@ interface SellerSuggestionModalProps {
 const SellerSuggestionModal = ({ 
     isOpen, 
     onClose, 
-    onConfirm, 
+    onConfirm,
     tradePlan, 
     sellerProfiles 
 }: SellerSuggestionModalProps) => {
+    console.log('SellerSuggestionModal render:', { isOpen, tradePlan, sellerProfiles });
     const [selectedSeller, setSelectedSeller] = useState<SellerSuggestion | null>(null);
     const [liveMarketPrice, setLiveMarketPrice] = useState<number | null>(null);
     const [isPriceLoading, setIsPriceLoading] = useState(true);
