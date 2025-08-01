@@ -230,7 +230,12 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
             const buyerMaxMarkup = maxMarkup ? parseFloat(maxMarkup) : null;
             let allPotentialOrders: Order[] = [];
             orderSnapshot.forEach(doc => {
-                const order = { id: doc.id, ...doc.data() } as Order;
+                const orderData = doc.data();
+                const order = { 
+                    id: doc.id, 
+                    firestoreId: doc.id, 
+                    ...orderData 
+                } as unknown as Order;
                 if (order.minBuyerCancellationRate && myCancellationRate > order.minBuyerCancellationRate) return;
                 if (buyerMaxMarkup !== null && order.markupPercentage > buyerMaxMarkup) return;
                 allPotentialOrders.push(order);
@@ -482,6 +487,12 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     tradeDataArray.push(tradeData);
                     
                     const newRemainingAmount = originalMatch.remainingAmount - originalMatch.amountToTake;
+                    console.log('Order Update Debug:', {
+                        orderId: originalMatch.firestoreId,
+                        originalRemaining: originalMatch.remainingAmount,
+                        amountToTake: originalMatch.amountToTake,
+                        newRemaining: newRemainingAmount
+                    });
                     orderUpdates.push({
                         orderId: originalMatch.firestoreId,
                         newRemainingAmount

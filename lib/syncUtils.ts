@@ -167,24 +167,38 @@ export async function atomicTradeCreation(
   const batch = writeBatch(db);
   
   try {
+    console.log('AtomicTradeCreation Debug:', { tradeData, orderUpdates });
+    
     // 1. Create trade document
     const tradeRef = doc(db, "trades", tradeData.id);
     batch.set(tradeRef, tradeData);
 
     // 2. Update order remaining amounts
     orderUpdates.forEach(({ orderId, newRemainingAmount }) => {
+      console.log('Updating order:', { orderId, newRemainingAmount });
       const orderRef = doc(db, "orders", orderId);
-      batch.update(orderRef, { 
+      
+      const updateData: any = {
         remainingAmount: newRemainingAmount,
         lastUpdated: new Date()
-      });
+      };
+      
+      // If order is completely filled, update status to CLOSED
+      if (newRemainingAmount <= 0) {
+        updateData.status = 'CLOSED';
+        console.log('Order completely filled, updating status to CLOSED');
+      }
+      
+      batch.update(orderRef, updateData);
     });
 
     // 3. Commit all changes atomically
     await batch.commit();
+    console.log('Atomic operation committed successfully');
     
     return { success: true };
   } catch (error: any) {
+    console.error('Atomic operation failed:', error);
     return { 
       success: false, 
       error: error.message || 'Atomic operation failed' 
