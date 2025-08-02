@@ -74,7 +74,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
     const [lastEdited, setLastEdited] = useState<'crypto' | 'fiat' | null>(null);
     const [marketPrice, setMarketPrice] = useState<number | null>(null);
     const [isPriceLoading, setIsPriceLoading] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
     const [selectedTokenAddress, setSelectedTokenAddress] = useState('');
     const [fiatCurrency, setFiatCurrency] = useState('PHP');
     const [isMatching, setIsMatching] = useState(false);
@@ -127,16 +127,28 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
 
     // Memoize initialization effect to prevent unnecessary re-renders
     useEffect(() => {
-        if (!isLoadingTokens && availablePaymentMethods.length > 0 && !paymentMethod) {
-            setPaymentMethod(availablePaymentMethods[0]);
-        }
         if (!isLoadingTokens && supportedCurrencies.length > 0 && !fiatCurrency) {
             setFiatCurrency(supportedCurrencies[0]);
         }
         if (!isLoadingTokens && tokenList.length > 0 && !selectedTokenAddress) {
             setSelectedTokenAddress(tokenList[0].address);
         }
-    }, [isLoadingTokens, availablePaymentMethods, supportedCurrencies, tokenList, paymentMethod, fiatCurrency, selectedTokenAddress]);
+    }, [isLoadingTokens, supportedCurrencies, tokenList, fiatCurrency, selectedTokenAddress]);
+
+    // Add new effect to update payment method when currency changes
+    useEffect(() => {
+        if (!isLoadingTokens && availablePaymentMethods.length > 0 && paymentMethod) {
+            // If current payment method is not valid for the new currency, reset it to null
+            if (!availablePaymentMethods.includes(paymentMethod)) {
+                console.log('BuyerDashboard: Resetting payment method for currency change', {
+                    oldPaymentMethod: paymentMethod,
+                    newCurrency: fiatCurrency,
+                    availableMethods: availablePaymentMethods
+                });
+                setPaymentMethod(null);
+            }
+        }
+    }, [isLoadingTokens, availablePaymentMethods, paymentMethod, fiatCurrency]);
 
     // Memoize price fetching to prevent unnecessary API calls
     const fetchPrice = useCallback(async () => {
@@ -188,6 +200,11 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         onCloseModal('paymentMethodSelector'); 
     }, [onCloseModal]);
     const handleFindMatch = useCallback(() => {
+        if (!paymentMethod) {
+            setErrorMsg('Please select a payment method.');
+            return;
+        }
+        
         if (isBelowMinBuy) {
             setErrorMsg(`Minimum buy amount is ${minBuyLocal.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}. Your order is only ${buyOrderLocalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${fiatCurrency}.`);
             return;
@@ -195,7 +212,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
             setErrorMsg(null);
         }
         onOpenModal('buyerRiskWarning', { onConfirm: executeMatchFinding });
-    }, [isBelowMinBuy, buyOrderLocalValue, minBuyLocal, fiatCurrency]);
+    }, [paymentMethod, isBelowMinBuy, buyOrderLocalValue, minBuyLocal, fiatCurrency]);
     const handleSaveSettings = useCallback((newMarkup: string) => setMaxMarkup(newMarkup), []);
 
     // Memoize execute match finding to prevent unnecessary re-renders
@@ -203,6 +220,11 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         onCloseModal('buyerRiskWarning');
         if (!selectedToken || !userId) { 
             addNotification({ type: 'error', message: 'Please connect wallet and select a token.' }); 
+            return; 
+        }
+        
+        if (!paymentMethod) {
+            addNotification({ type: 'error', message: 'Please select a payment method.' }); 
             return; 
         }
     
@@ -217,10 +239,11 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
             const cancellationCount = userProfile?.cancellationCount || 0;
             const myCancellationRate = tradeCount > 0 ? cancellationCount / tradeCount : 0;
             
-            const buyAmountInWei = parseUnits(cryptoAmount, selectedToken.decimals);
+            const buyAmountInWei = parseUnits(cryptoAmount, selectedToken?.decimals || 18);
             
             const q = query(collection(db, "orders"), where('status', '==', 'OPEN'), where('paymentMethods', 'array-contains', paymentMethod), where('tokenAddress', '==', selectedTokenAddress), where('fiatCurrency', '==', fiatCurrency));
             const orderSnapshot = await getDocs(q);
+            
             if (orderSnapshot.empty) { 
                 addNotification({ type: 'info', message: 'No open orders found for your criteria.' }); 
                 setIsMatching(false); 
@@ -240,7 +263,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                 if (buyerMaxMarkup !== null && order.markupPercentage > buyerMaxMarkup) return;
                 allPotentialOrders.push(order);
             });
-    
+            
             if (allPotentialOrders.length === 0) { 
                 addNotification({ type: 'info', message: 'No orders found that meet all criteria.' }); 
                 setIsMatching(false); 
@@ -285,17 +308,6 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                 return remainingAmountInWei >= buyAmountInWei;
             });
 
-            console.log('Matching Debug:', {
-                buyerAmount: formatUnits(buyAmountInWei, selectedToken.decimals),
-                totalOrders: ordersWithSufficientAmount.length,
-                completeOrders: completeOrders.length,
-                completeOrdersDetails: completeOrders.map(o => ({
-                    orderId: o.onChainId,
-                    remaining: o.remainingAmount,
-                    seller: o.seller
-                }))
-            });
-
             let matchedOrders: MatchedOrder[] = [];
 
             if (completeOrders.length > 0) {
@@ -308,19 +320,12 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     return getWeightedMarkup(a) - getWeightedMarkup(b);
                 })[0];
 
-                console.log('Using Complete Order:', {
-                    orderId: bestCompleteOrder.onChainId,
-                    seller: bestCompleteOrder.seller,
-                    remaining: bestCompleteOrder.remainingAmount,
-                    taking: formatUnits(buyAmountInWei, selectedToken.decimals)
-                });
-
                 matchedOrders.push({
                     ...bestCompleteOrder,
                     firestoreId: bestCompleteOrder.id,
                     amountToTakeInWei: buyAmountInWei, 
-                    amountToTake: Number(buyAmountInWei) / (10 ** selectedToken.decimals),
-                    paymentMethod: paymentMethod,
+                    amountToTake: Number(buyAmountInWei) / (10 ** (selectedToken?.decimals || 18)),
+                    paymentMethod: paymentMethod!,
                     price: 0, fiatCost: 0, 
                 });
             } else {
@@ -345,19 +350,12 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     const amountFromThisOrderInWei = remainingAmountInWei < amountToFillInWei ? remainingAmountInWei : amountToFillInWei;
                     if (amountFromThisOrderInWei <= 0n) continue;
 
-                    console.log('Matching Order (Fallback):', {
-                        orderId: order.onChainId,
-                        remaining: formatUnits(remainingAmountInWei, order.tokenDecimals),
-                        taking: formatUnits(amountFromThisOrderInWei, order.tokenDecimals),
-                        stillNeeded: formatUnits(amountToFillInWei, selectedToken.decimals)
-                    });
-        
                     optimalOrders.push({
                         ...order,
                         firestoreId: order.id,
                         amountToTakeInWei: amountFromThisOrderInWei, 
                         amountToTake: Number(amountFromThisOrderInWei) / (10 ** order.tokenDecimals),
-                        paymentMethod: paymentMethod,
+                        paymentMethod: paymentMethod!,
                         price: 0, fiatCost: 0, 
                     });
                     amountToFillInWei -= amountFromThisOrderInWei;
@@ -373,7 +371,6 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
             }
     
             const newTradePlan = { matches: matchedOrders, totalCrypto: Number(cryptoAmount), totalFiat: 0, avgPrice: 0, buyerId: userId };
-            console.log('BuyerDashboard: Opening seller suggestion modal with trade plan:', newTradePlan);
             setTradePlan(newTradePlan);
             onOpenModal('sellerSuggestion', { onConfirm: handleSellerSelected, tradePlan: newTradePlan, sellerProfiles });
     
@@ -382,7 +379,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         } finally {
             setIsMatching(false);
         }
-    }, [selectedToken, userId, cryptoAmount, paymentMethod, selectedTokenAddress, fiatCurrency, maxMarkup, addNotification]);
+    }, [selectedToken, userId, cryptoAmount, paymentMethod, selectedTokenAddress, fiatCurrency, maxMarkup, addNotification, onCloseModal, onOpenModal]);
 
     // Memoize seller selection handler
     const handleSellerSelected = useCallback(async (selectedSeller: any) => {
@@ -487,12 +484,6 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     tradeDataArray.push(tradeData);
                     
                     const newRemainingAmount = originalMatch.remainingAmount - originalMatch.amountToTake;
-                    console.log('Order Update Debug:', {
-                        orderId: originalMatch.firestoreId,
-                        originalRemaining: originalMatch.remainingAmount,
-                        amountToTake: originalMatch.amountToTake,
-                        newRemaining: newRemainingAmount
-                    });
                     orderUpdates.push({
                         orderId: originalMatch.firestoreId,
                         newRemainingAmount
