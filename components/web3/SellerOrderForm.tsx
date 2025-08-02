@@ -13,6 +13,8 @@ import { P2PEscrowABI } from '@/abis/P2PEscrow';
 import { CONTRACT_ADDRESSES, DEFAULT_CHAIN_ID } from '@/constants';
 import { parseUnits, zeroAddress } from 'viem';
 import Tooltip from '../ui/Tooltip';
+import { useWeb3 } from '@/lib/Web3Provider';
+
 
 const TokenSelectorModal = dynamic(() => import('../ui/TokenSelectorModal'));
 const MultiSelectPaymentModal = dynamic(() => import('../ui/MultiSelectPaymentModal'));
@@ -68,6 +70,7 @@ const SellerOrderForm = React.memo(({
     onOpenModal,
     onCloseModal
 }: SellerOrderFormProps) => {
+    const { chainId } = useWeb3();
     const [cryptoAmount, setCryptoAmount] = useState('');
     const [fiatAmount, setFiatAmount] = useState('');
     const [lastEdited, setLastEdited] = useState<'crypto' | 'fiat' | null>(null);
@@ -202,8 +205,7 @@ const SellerOrderForm = React.memo(({
     };
 
     // Fetch platform fee from contract
-    const chainId = DEFAULT_CHAIN_ID; // You may want to get this from context if multi-chain
-    const contractAddress = CONTRACT_ADDRESSES[chainId];
+    const contractAddress = CONTRACT_ADDRESSES[chainId ?? DEFAULT_CHAIN_ID];
     const P2P_CONTRACT_CONFIG = {
         address: contractAddress as `0x${string}`,
         abi: P2PEscrowABI,
@@ -219,7 +221,8 @@ const SellerOrderForm = React.memo(({
     // Debug logging - only log when values actually change
     useEffect(() => {
         console.log('Platform Fee Debug:', {
-            chainId,
+            currentChainId: chainId,
+            usedChainId: chainId ?? DEFAULT_CHAIN_ID,
             contractAddress,
             feeData,
             platformFeeBps,

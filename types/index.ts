@@ -19,6 +19,7 @@ export interface Order {
     tokenDecimals: number;
     paymentDetails?: any;
     minBuyerCancellationRate?: number;
+    chainId: number; // Add chainId for network filtering
 }
 
 // For the Buyer's trade plan
@@ -40,6 +41,7 @@ export interface MatchedOrder {
     remainingAmount: number;
     sellerProfile?: UserProfile;
     amountToTakeInWei?: bigint;
+    chainId: number; // Add chainId for network filtering
 }
 
 export interface TradePlan {

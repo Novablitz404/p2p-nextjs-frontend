@@ -44,6 +44,26 @@ export const liskSepolia = {
   testnet: true,
 };
 
+// Morph Holesky chain config
+export const morphHolesky = {
+  id: 2810,
+  name: 'Morph Holesky',
+  network: 'morph-holesky',
+  nativeCurrency: {
+    name: 'Ether',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: ['https://rpc-holesky.morphl2.io'] },
+    public: { http: ['https://rpc-holesky.morphl2.io'] },
+  },
+  blockExplorers: {
+    default: { name: 'Morph Bridge', url: 'https://bridge-holesky.morphl2.io/' },
+  },
+  testnet: true,
+};
+
 // Example: How to add a new chain (Ethereum Mainnet)
 // export const ethereumMainnet = {
 //   id: 1,
@@ -65,7 +85,7 @@ export const liskSepolia = {
 // };
 
 export const config = createConfig({
-  chains: [liskSepolia, baseSepolia, coreTestnet], // Lisk Sepolia first
+  chains: [liskSepolia, morphHolesky, baseSepolia, coreTestnet], // All networks enabled
   connectors: [
     injected({
         target: 'metaMask',
@@ -80,6 +100,7 @@ export const config = createConfig({
   }),
   transports: {
     [liskSepolia.id]: http('https://rpc.sepolia-api.lisk.com'), // Lisk first
+    [morphHolesky.id]: http('https://rpc-holesky.morphl2.io'), // Morph Holesky
     [baseSepolia.id]: http(),
     [coreTestnet.id]: http('https://rpc.test2.btcs.network'),
     // Add your new network transport here:

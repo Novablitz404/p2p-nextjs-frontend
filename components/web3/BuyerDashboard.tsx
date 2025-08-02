@@ -23,7 +23,7 @@ import Spinner from '../ui/Spinner';
 import { ChevronDown, Settings } from 'lucide-react';
 import { useNotifications } from '@/lib/NotificationProvider';
 import { CURRENCY_PAYMENT_METHODS } from '@/constants';
-import { CONTRACT_ADDRESSES, SUPPORTED_NETWORKS } from '@/constants';
+import { CONTRACT_ADDRESSES, SUPPORTED_NETWORKS, DEFAULT_CHAIN_ID } from '@/constants';
 import { validateOrderState, atomicTradeCreation } from '@/lib/syncUtils';
 
 const SellerSuggestionModal = dynamic(() => import('../web3/SellerSuggestionModal'));
@@ -241,7 +241,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
             
             const buyAmountInWei = parseUnits(cryptoAmount, selectedToken?.decimals || 18);
             
-            const q = query(collection(db, "orders"), where('status', '==', 'OPEN'), where('paymentMethods', 'array-contains', paymentMethod), where('tokenAddress', '==', selectedTokenAddress), where('fiatCurrency', '==', fiatCurrency));
+            const q = query(collection(db, "orders"), where('status', '==', 'OPEN'), where('paymentMethods', 'array-contains', paymentMethod), where('tokenAddress', '==', selectedTokenAddress), where('fiatCurrency', '==', fiatCurrency), where('chainId', '==', chainId));
             const orderSnapshot = await getDocs(q);
             
             if (orderSnapshot.empty) { 
@@ -327,6 +327,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     amountToTake: Number(buyAmountInWei) / (10 ** (selectedToken?.decimals || 18)),
                     paymentMethod: paymentMethod!,
                     price: 0, fiatCost: 0, 
+                    chainId: chainId ?? DEFAULT_CHAIN_ID
                 });
             } else {
                 // Fallback: Use multiple orders if no single order can fulfill the request
@@ -357,6 +358,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                         amountToTake: Number(amountFromThisOrderInWei) / (10 ** order.tokenDecimals),
                         paymentMethod: paymentMethod!,
                         price: 0, fiatCost: 0, 
+                        chainId: chainId ?? DEFAULT_CHAIN_ID
                     });
                     amountToFillInWei -= amountFromThisOrderInWei;
                 }
@@ -379,7 +381,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
         } finally {
             setIsMatching(false);
         }
-    }, [selectedToken, userId, cryptoAmount, paymentMethod, selectedTokenAddress, fiatCurrency, maxMarkup, addNotification, onCloseModal, onOpenModal]);
+    }, [selectedToken, userId, cryptoAmount, paymentMethod, selectedTokenAddress, fiatCurrency, maxMarkup, addNotification, onCloseModal, onOpenModal, chainId]);
 
     // Memoize seller selection handler
     const handleSellerSelected = useCallback(async (selectedSeller: any) => {
@@ -412,7 +414,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                     orderId: match.firestoreId,
                     onChainId: match.onChainId,
                     tokenDecimals: match.tokenDecimals,
-                    chainId: chainId ?? 84532
+                    chainId: chainId ?? DEFAULT_CHAIN_ID
                 }, match.amountToTake);
 
                 if (!validation.valid) {
@@ -478,7 +480,7 @@ const BuyerDashboard = React.memo(({ userId, tokenList, isLoadingTokens, support
                         sellerPaymentDetails: specificPaymentDetails,
                         createdAt: serverTimestamp(),
                         creationTxHash: receipt.transactionHash,
-                        chainId: chainId ?? 84532
+                        chainId: chainId ?? DEFAULT_CHAIN_ID
                     };
 
                     tradeDataArray.push(tradeData);

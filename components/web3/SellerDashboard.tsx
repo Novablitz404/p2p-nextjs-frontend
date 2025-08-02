@@ -167,7 +167,8 @@ const SellerDashboard = React.memo(({
                 status: 'OPEN',
                 createdAt: serverTimestamp() as Timestamp,
                 paymentMethods: selectedMethods.map((m: any) => m.channel),
-                paymentDetails: paymentDetailsMap
+                paymentDetails: paymentDetailsMap,
+                chainId: chainId ?? DEFAULT_CHAIN_ID
             };
 
             if (minCancellationRate && minCancellationRate !== '') {

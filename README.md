@@ -155,8 +155,9 @@ frontend/
 The application supports the following blockchain networks:
 
 - **Lisk Sepolia Testnet** (ID: 4202) - Primary network
-- **Base Sepolia Testnet** (ID: 84532)
-- **Core Testnet** (ID: 1114)
+- **Morph Holesky** (ID: 2810) - Layer 2 testnet
+- **Base Sepolia Testnet** (ID: 84532) - Layer 2 testnet
+- **Core Testnet** (ID: 1114) - Bitcoin-powered testnet
 
 ### Wallet Connectors
 

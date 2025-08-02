@@ -55,6 +55,19 @@ export const LISK_SEPOLIA_CONFIG: NetworkConfig = {
     logoUrl: '/lisk-profile-w.svg',
 };
 
+export const MORPH_HOLESKY_CONFIG: NetworkConfig = {
+    chainId: 2810,
+    chainName: "Morph Holesky",
+    rpcUrls: ["https://rpc-holesky.morphl2.io"],
+    nativeCurrency: {
+        name: "Ether",
+        symbol: "ETH",
+        decimals: 18,
+    },
+    blockExplorerUrls: ["https://bridge-holesky.morphl2.io/"],
+    logoUrl: '/Morph.logo-Green.svg',
+};
+
 // Example: How to add a new network (Ethereum Mainnet)
 // export const ETHEREUM_MAINNET_CONFIG: NetworkConfig = {
 //     chainId: 1,
@@ -72,8 +85,9 @@ export const LISK_SEPOLIA_CONFIG: NetworkConfig = {
 // Array of all supported networks for the dropdown
 export const SUPPORTED_NETWORKS: NetworkConfig[] = [
     LISK_SEPOLIA_CONFIG,    // Lisk Sepolia (now first)
-    // BASE_SEPOLIA_CONFIG,     // Base Sepolia (temporarily disabled - contract not deployed)
-    // CORE_TESTNET_CONFIG,     // Core Testnet (temporarily disabled - contract not deployed)
+    MORPH_HOLESKY_CONFIG,   // Morph Holesky
+    BASE_SEPOLIA_CONFIG,     // Base Sepolia
+    CORE_TESTNET_CONFIG,     // Core Testnet
     // Add your new network here:
     // ETHEREUM_MAINNET_CONFIG,
     // You can add more supported networks here in the future
@@ -131,9 +145,10 @@ export const CURRENCY_PAYMENT_METHODS: { [key: string]: string[] } = {
 };
 
 export const CONTRACT_ADDRESSES: Record<number, string> = {
-  // 84532: "0xYOUR_BASE_SEPOLIA_CONTRACT_ADDRESS", // Base Sepolia (need to deploy contract)
-  // 1114:  "0xYOUR_CORE_TESTNET_CONTRACT_ADDRESS",   // Core Testnet (need to deploy contract)
   4202:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Lisk Sepolia Testnet
+  2810:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Morph Holesky
+  84532: "0x3BEeC28Bed1877E813Af02246AB01A353c3cC817",   // Base Sepolia
+  1114:  "0xdE049eD3Cf212B54013367757149e347fd7172b4",   // Core Testnet
   // Add your new network contract address here:
   // 1: "0xYOUR_CONTRACT_ADDRESS_HERE", // Ethereum Mainnet
 };
